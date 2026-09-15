@@ -14,8 +14,27 @@ export const AuthGate: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [busy, setBusy] = useState(false);
 
   const prepareSession = async (nextSession: Session | null) => {
+    if (!nextSession || !supabase) {
+      setSession(null);
+      setReady(true);
+      return;
+    }
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role, is_active')
+      .eq('id', nextSession.user.id)
+      .single();
+
+    if (error || !profile?.is_active) {
+      await supabase.auth.signOut();
+      setSession(null);
+      setReady(true);
+      throw new Error('Akun belum diaktifkan oleh Master.');
+    }
+
+    await restoreCloudSnapshot();
     setSession(nextSession);
-    if (nextSession) await restoreCloudSnapshot();
     setReady(true);
   };
 
