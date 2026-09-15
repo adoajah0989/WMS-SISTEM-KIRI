@@ -1,3 +1,4 @@
+import { NumberInput } from '../common/NumberInput';
 import React, { useState } from 'react';
 import {
   FileText,
@@ -744,7 +745,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                           <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                             Qty *
                           </label>
-                          <input
+                          <NumberInput
                             type="number"
                             min="1"
                             required
@@ -773,7 +774,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                           <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                             Est. Harga (Rp)
                           </label>
-                          <input
+                          <NumberInput
                             type="number"
                             min="0"
                             value={item.estimatedUnitPrice}
