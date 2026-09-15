@@ -6,7 +6,7 @@ This repository is React + Vite, not Next.js. It uses `@supabase/supabase-js`; d
 
 Open Supabase SQL Editor and run:
 
-`supabase/migrations/202609150001_initial_production.sql`
+`supabase/migrations/20260915033415_initial_production.sql`
 
 The first user who registers becomes the active `master`. Every next user is created as inactive `viewer` and must be activated by the master.
 
