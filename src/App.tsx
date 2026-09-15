@@ -11,6 +11,8 @@ import { SupplierView } from './components/suppliers/SupplierView';
 import { RackQRScanModal } from './components/rack/RackQRScanModal';
 import { RackQRLabelModal } from './components/rack/RackQRLabelModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { AuthGate } from './components/auth/AuthGate';
+import { CloudSync } from './components/common/CloudSync';
 import { PurchaseRequisition, PurchaseOrder, WarehouseItem } from './types';
 
 const MainContent: React.FC = () => {
@@ -202,9 +204,12 @@ const MainContent: React.FC = () => {
 export default function App() {
   return (
     <ErrorBoundary fallbackTitle="Terjadi Kendala Pada Aplikasi Kiri Purchasing">
-      <PurchasingProvider>
-        <MainContent />
-      </PurchasingProvider>
+      <AuthGate>
+        <PurchasingProvider>
+          <CloudSync />
+          <MainContent />
+        </PurchasingProvider>
+      </AuthGate>
     </ErrorBoundary>
   );
 }
