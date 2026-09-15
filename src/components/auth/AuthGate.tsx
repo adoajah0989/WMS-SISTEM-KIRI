@@ -12,6 +12,9 @@ const authErrorMessage = (error: unknown) => {
 
   if (normalized.includes('invalid login credentials')) return 'Email atau password salah.';
   if (normalized.includes('email rate limit')) return 'Terlalu banyak email dikirim. Tunggu beberapa menit lalu coba lagi.';
+  if (normalized.includes('error sending confirmation email') || normalized.includes('failed to send')) {
+    return 'SMTP gagal mengirim email verifikasi. Hubungi Master untuk memeriksa konfigurasi pengirim email.';
+  }
   if (normalized.includes('token has expired') || normalized.includes('otp_expired')) return 'Kode OTP sudah kedaluwarsa. Kirim ulang kode baru.';
   if (normalized.includes('invalid token') || normalized.includes('otp')) return 'Kode OTP tidak valid.';
   if (normalized.includes('database error saving new user')) return 'Database pengguna belum siap. Pastikan migration Supabase sudah berhasil dijalankan.';
@@ -141,11 +144,18 @@ export const AuthGate: React.FC<AuthGateProps> = ({
 
         if (data.session) {
           await prepareSession(data.session);
+        } else if (data.user && (data.user.identities?.length || 0) === 0) {
+          // Supabase deliberately obfuscates signups for an existing confirmed
+          // address. No confirmation email is sent in this case.
+          setEmail(normalizedEmail);
+          setPassword('');
+          setMode('login');
+          setMessage('Email ini sudah pernah didaftarkan. Silakan masuk dengan password akun tersebut.');
         } else {
           setPendingEmail(normalizedEmail);
           setOtp('');
           setMode('verify');
-          setMessage('Kode verifikasi telah dikirim ke email. Periksa juga folder spam.');
+          setMessage('Permintaan OTP diterima. Periksa inbox dan folder spam, lalu gunakan kode terbaru.');
         }
       } else {
         const { data, error } = await supabase.auth.verifyOtp({
