@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { formatRupiah, formatDate, getPRStatusBadge, getPOStatusBadge } from '../../utils/formatters';
+import { useAuth } from '../auth/AuthContext';
+import { canCreatePO, canCreatePR, canReceiveGoods } from '../../lib/permissions';
 
 interface DashboardViewProps {
   onOpenCreatePR: () => void;
@@ -30,6 +32,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenCreateGRN,
   onOpenScanQR,
 }) => {
+  const { profile } = useAuth();
   const {
     items,
     suppliers,
@@ -81,27 +84,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>Scan QR Rak</span>
             </button>
           )}
-          <button
+          {canCreatePR(profile.role) && <button
             onClick={onOpenCreatePR}
             className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-slate-900 hover:bg-slate-800 active:bg-black text-white text-xs font-semibold rounded-lg shadow-2xs transition min-h-[42px]"
           >
             <Plus className="w-4 h-4 text-emerald-400" />
             Buat Permintaan (PR)
-          </button>
-          <button
+          </button>}
+          {canCreatePO(profile.role) && <button
             onClick={onOpenCreatePO}
             className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 text-xs font-semibold rounded-lg border border-slate-200 shadow-2xs transition min-h-[42px]"
           >
             <ShoppingCart className="w-4 h-4 text-slate-600" />
             Terbitkan PO
-          </button>
-          <button
+          </button>}
+          {canReceiveGoods(profile.role) && <button
             onClick={onOpenCreateGRN}
             className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 text-xs font-semibold rounded-lg border border-slate-200 shadow-2xs transition min-h-[42px]"
           >
             <Truck className="w-4 h-4 text-slate-600" />
             Penerimaan Barang
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -254,12 +257,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </td>
                       <td className="py-3 px-3 text-slate-600 text-[11px]">{item.warehouseLocation}</td>
                       <td className="py-3 px-4 text-right">
-                        <button
+                        {canCreatePR(profile.role) && <button
                           onClick={onOpenCreatePR}
                           className="px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition"
                         >
                           + Buat PR
-                        </button>
+                        </button>}
                       </td>
                     </tr>
                   ))}
@@ -294,12 +297,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                   </div>
 
-                  <button
+                  {canCreatePR(profile.role) && <button
                     onClick={onOpenCreatePR}
                     className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 active:bg-emerald-700 text-white rounded-lg shadow-2xs shrink-0 min-h-[36px]"
                   >
                     + PR
-                  </button>
+                  </button>}
                 </div>
               ))
             )}

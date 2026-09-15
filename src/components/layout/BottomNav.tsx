@@ -10,12 +10,15 @@ import {
 } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { ActiveTab } from '../../types';
+import { useAuth } from '../auth/AuthContext';
+import { canScanWarehouse, ROLE_TABS } from '../../lib/permissions';
 
 interface BottomNavProps {
   onOpenScanQR?: () => void;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ onOpenScanQR }) => {
+  const { profile } = useAuth();
   const {
     activeTab,
     setActiveTab,
@@ -28,7 +31,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenScanQR }) => {
   const lowStockCount = getLowStockItems().length;
   const activePOs = getActivePOsCount();
 
-  const navItems: {
+  const allNavItems: {
     id: ActiveTab;
     label: string;
     shortLabel: string;
@@ -79,11 +82,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenScanQR }) => {
       icon: Building2,
     },
   ];
+  const navItems = allNavItems.filter(item => ROLE_TABS[profile.role].includes(item.id));
 
   return (
     <>
       {/* Floating QR Scanner Button on Mobile */}
-      {onOpenScanQR && (
+      {onOpenScanQR && canScanWarehouse(profile.role) && (
         <button
           onClick={onOpenScanQR}
           aria-label="Scan QR Rak Gudang"

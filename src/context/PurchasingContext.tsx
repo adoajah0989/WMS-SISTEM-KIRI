@@ -18,13 +18,8 @@ import {
   INITIAL_PURCHASE_ORDERS,
   INITIAL_GOODS_RECEIPTS,
   INITIAL_STOCK_MOVEMENTS,
-  SAMPLE_ITEMS,
-  SAMPLE_SUPPLIERS,
-  SAMPLE_REQUISITIONS,
-  SAMPLE_PURCHASE_ORDERS,
-  SAMPLE_GOODS_RECEIPTS,
-  SAMPLE_STOCK_MOVEMENTS,
 } from '../data/initialData';
+import { recordActivity } from '../services/activityLog';
 
 interface PurchasingContextType {
   // Navigation & UI state
@@ -92,9 +87,6 @@ interface PurchasingContextType {
   importWarehouseItems: (importedItems: Partial<WarehouseItem>[], mode: 'merge' | 'replace') => number;
   importSuppliers: (importedSuppliers: Partial<Supplier>[], mode: 'merge' | 'replace') => number;
   importFullBackup: (backupData: any) => boolean;
-  clearAllDatabase: () => void;
-  loadSampleData: () => void;
-  resetToSampleData: () => void;
   exportDatabaseJSON: () => void;
 }
 
@@ -221,6 +213,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       updatedAt: new Date().toISOString(),
     };
     setItems((prev) => [newItem, ...prev]);
+    void recordActivity('create', 'sku', newItem.id, `Menambahkan SKU ${newItem.sku} — ${newItem.name}`, { sku: newItem.sku });
 
     if (newItem.currentStock > 0) {
       // Create initial stock movement
@@ -244,6 +237,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   const updateItem = (id: string, updatedFields: Partial<WarehouseItem>) => {
+    const target = items.find(item => item.id === id);
     setItems((prev) =>
       prev.map((item) =>
         item.id === id
@@ -251,6 +245,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
           : item
       )
     );
+    void recordActivity('update', 'sku', id, `Memperbarui SKU ${target?.sku || id}`, { fields: Object.keys(updatedFields) });
   };
 
   const deleteItem = (id: string): boolean => {
@@ -263,6 +258,8 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       return false;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));
+    const deleted = items.find(item => item.id === id);
+    void recordActivity('delete', 'sku', id, `Menghapus SKU ${deleted?.sku || id}`);
     return true;
   };
 
@@ -307,6 +304,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       operator: operator || 'Petugas Gudang',
     };
     setStockMovements((prev) => [newMovement, ...prev]);
+    void recordActivity('stock', 'sku', targetItem.id, `Mutasi stok ${targetItem.sku}: ${effectiveQty > 0 ? '+' : ''}${effectiveQty}`, { referenceNo: newMovement.referenceNo, newStock });
   };
 
   // Supplier Functions
@@ -316,6 +314,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       id: `sup-${Date.now()}`,
     };
     setSuppliers((prev) => [...prev, newSupplier]);
+    void recordActivity('create', 'supplier', newSupplier.id, `Menambahkan supplier ${newSupplier.name}`);
     return newSupplier;
   };
 
@@ -339,6 +338,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       isActive: true,
     };
     setSuppliers((prev) => [...prev, newSup]);
+    void recordActivity('create', 'supplier', newSup.id, `Menambahkan supplier cepat ${newSup.name}`);
     return newSup;
   };
 
@@ -346,6 +346,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     setSuppliers((prev) =>
       prev.map((sup) => (sup.id === id ? { ...sup, ...updatedFields } : sup))
     );
+    void recordActivity('update', 'supplier', id, `Memperbarui supplier ${suppliers.find(item => item.id === id)?.name || id}`);
   };
 
   const deleteSupplier = (id: string): boolean => {
@@ -355,6 +356,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       return false;
     }
     setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    void recordActivity('delete', 'supplier', id, `Menghapus supplier ${suppliers.find(item => item.id === id)?.name || id}`);
     return true;
   };
 
@@ -370,6 +372,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       createdAt: new Date().toISOString(),
     };
     setRequisitions((prev) => [newPR, ...prev]);
+    void recordActivity('create', 'pr', newPR.id, `Membuat ${newPR.prNumber}`, { status: newPR.status });
     return newPR;
   };
 
@@ -377,6 +380,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     setRequisitions((prev) =>
       prev.map((pr) => (pr.id === id ? { ...pr, ...updatedFields } : pr))
     );
+    void recordActivity('update', 'pr', id, `Memperbarui ${requisitions.find(item => item.id === id)?.prNumber || id}`);
   };
 
   const updatePRStatus = (id: string, status: PRStatus, reasonOrApprover?: string) => {
@@ -400,6 +404,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         return { ...pr, status };
       })
     );
+    void recordActivity('status', 'pr', id, `Mengubah status ${requisitions.find(item => item.id === id)?.prNumber || id} menjadi ${status}`);
   };
 
   const convertPRtoPO = (
@@ -458,6 +463,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     };
 
     setPurchaseOrders((prev) => [newPO, ...prev]);
+    void recordActivity('create', 'po', newPO.id, `Mengonversi ${targetPR.prNumber} menjadi ${newPO.poNumber}`);
 
     // Mark PR as converted
     setRequisitions((prev) =>
@@ -477,6 +483,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const deletePR = (id: string) => {
     setRequisitions((prev) => prev.filter((pr) => pr.id !== id));
+    void recordActivity('delete', 'pr', id, `Menghapus ${requisitions.find(item => item.id === id)?.prNumber || id}`);
   };
 
   // PO Functions
@@ -488,6 +495,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       createdAt: new Date().toISOString(),
     };
     setPurchaseOrders((prev) => [newPO, ...prev]);
+    void recordActivity('create', 'po', newPO.id, `Membuat ${newPO.poNumber}`);
     return newPO;
   };
 
@@ -495,12 +503,14 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     setPurchaseOrders((prev) =>
       prev.map((po) => (po.id === id ? { ...po, ...updatedFields } : po))
     );
+    void recordActivity('update', 'po', id, `Memperbarui ${purchaseOrders.find(item => item.id === id)?.poNumber || id}`);
   };
 
   const updatePOStatus = (id: string, status: POStatus) => {
     setPurchaseOrders((prev) =>
       prev.map((po) => (po.id === id ? { ...po, status } : po))
     );
+    void recordActivity('status', 'po', id, `Mengubah status ${purchaseOrders.find(item => item.id === id)?.poNumber || id} menjadi ${status}`);
   };
 
   const deletePO = (id: string) => {
@@ -510,6 +520,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       return;
     }
     setPurchaseOrders((prev) => prev.filter((po) => po.id !== id));
+    void recordActivity('delete', 'po', id, `Menghapus ${purchaseOrders.find(item => item.id === id)?.poNumber || id}`);
   };
 
   // Goods Receipt Functions (Core Warehouse Integration)
@@ -539,6 +550,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
 
     // 1. Update Goods Receipts list
     setGoodsReceipts((prev) => [newGRN, ...prev]);
+    void recordActivity('create', 'grn', newGRN.id, `Mencatat penerimaan ${newGRN.grnNumber}`, { poNumber: newGRN.poNumber });
 
     // 2. Increase Warehouse inventory & Create Stock Movement Logs for accepted items
     const newMovements: StockMovement[] = [];
@@ -645,6 +657,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
   const deleteGRN = (id: string) => {
     if (confirm('Hapus bukti penerimaan ini? Catatan: Stok gudang yang sudah bertambah tidak akan berkurang otomatis.')) {
       setGoodsReceipts((prev) => prev.filter((g) => g.id !== id));
+      void recordActivity('delete', 'grn', id, 'Menghapus bukti penerimaan barang');
     }
   };
 
@@ -696,7 +709,6 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
 
     if (mode === 'replace') {
       setItems(formatted);
-      return formatted.length;
     } else {
       // Merge mode: update existing SKU or append new
       setItems((prev) => {
@@ -713,8 +725,9 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         });
         return next;
       });
-      return formatted.length;
     }
+    void recordActivity('import', 'sku', null, `Mengimpor ${formatted.length} SKU (${mode})`);
+    return formatted.length;
   };
 
   const importSuppliers = (
@@ -739,7 +752,6 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
 
     if (mode === 'replace') {
       setSuppliers(formatted);
-      return formatted.length;
     } else {
       setSuppliers((prev) => {
         const next = [...prev];
@@ -755,8 +767,9 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         });
         return next;
       });
-      return formatted.length;
     }
+    void recordActivity('import', 'supplier', null, `Mengimpor ${formatted.length} supplier (${mode})`);
+    return formatted.length;
   };
 
   const importFullBackup = (backupData: any): boolean => {
@@ -773,47 +786,13 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       if (Array.isArray(backupData.goodsReceipts)) setGoodsReceipts(backupData.goodsReceipts);
       if (Array.isArray(backupData.stockMovements)) setStockMovements(backupData.stockMovements);
 
+      void recordActivity('import', 'backup', null, 'Memulihkan backup database aplikasi');
       alert('Restore backup database berhasil diselesaikan.');
       return true;
     } catch (err: any) {
       alert('Gagal memulihkan database: ' + (err.message || 'Format data salah.'));
       return false;
     }
-  };
-
-  const clearAllDatabase = () => {
-    if (confirm('Kosongkan seluruh data database? Semua riwayat barang, supplier, PR, PO, dan GRN akan dihapus.')) {
-      setItems([]);
-      setSuppliers([]);
-      setRequisitions([]);
-      setPurchaseOrders([]);
-      setGoodsReceipts([]);
-      setStockMovements([]);
-      localStorage.setItem(STORAGE_KEYS.CLEANED_FLAG, 'true');
-      localStorage.removeItem(STORAGE_KEYS.ITEMS);
-      localStorage.removeItem(STORAGE_KEYS.SUPPLIERS);
-      localStorage.removeItem(STORAGE_KEYS.PRS);
-      localStorage.removeItem(STORAGE_KEYS.POS);
-      localStorage.removeItem(STORAGE_KEYS.GRNS);
-      localStorage.removeItem(STORAGE_KEYS.MOVEMENTS);
-      alert('Database berhasil dikosongkan.');
-    }
-  };
-
-  const loadSampleData = () => {
-    if (confirm('Muat contoh data simulasi ke database?')) {
-      setItems(SAMPLE_ITEMS);
-      setSuppliers(SAMPLE_SUPPLIERS);
-      setRequisitions(SAMPLE_REQUISITIONS);
-      setPurchaseOrders(SAMPLE_PURCHASE_ORDERS);
-      setGoodsReceipts(SAMPLE_GOODS_RECEIPTS);
-      setStockMovements(SAMPLE_STOCK_MOVEMENTS);
-      alert('Contoh data berhasil dimuat ke database.');
-    }
-  };
-
-  const resetToSampleData = () => {
-    loadSampleData();
   };
 
   const exportDatabaseJSON = () => {
@@ -875,9 +854,6 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         importWarehouseItems,
         importSuppliers,
         importFullBackup,
-        clearAllDatabase,
-        loadSampleData,
-        resetToSampleData,
         exportDatabaseJSON,
       }}
     >
