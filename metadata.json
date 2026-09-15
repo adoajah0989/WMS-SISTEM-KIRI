@@ -1,0 +1,6 @@
+{
+  "name": "Kiri Purchasing",
+  "description": "Sistem manajemen purchasing terpadu untuk pemesanan barang, Purchase Order (PO), penerimaan barang (Goods Receipt), pelacakan stok gudang dengan QR scan rak, dan database inventaris.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
