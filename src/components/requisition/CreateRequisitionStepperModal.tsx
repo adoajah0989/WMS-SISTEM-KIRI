@@ -1,3 +1,4 @@
+import { NumberInput } from '../common/NumberInput';
 import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
@@ -898,7 +899,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <input
+                          <NumberInput
                             type="number"
                             min="1"
                             value={item.quantity}
@@ -943,7 +944,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                         <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                           Est. Harga Satuan (Rp)
                         </label>
-                        <input
+                        <NumberInput
                           type="number"
                           min="0"
                           value={item.estimatedUnitPrice || ''}

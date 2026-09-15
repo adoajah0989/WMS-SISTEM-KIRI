@@ -1,3 +1,4 @@
+import { NumberInput } from '../common/NumberInput';
 import React, { useState } from 'react';
 import {
   ShoppingCart,
@@ -784,7 +785,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                           <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
                             Qty *
                           </label>
-                          <input
+                          <NumberInput
                             type="number"
                             min="1"
                             required
@@ -819,7 +820,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                           <label className="block text-[11px] font-semibold text-slate-600 mb-0.5" title="Berapa satuan dasar gudang per 1 satuan order">
                             Rasio
                           </label>
-                          <input
+                          <NumberInput
                             type="number"
                             min="1"
                             step="any"
@@ -837,7 +838,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                           <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
                             Harga (Rp) *
                           </label>
-                          <input
+                          <NumberInput
                             type="number"
                             min="0"
                             required
@@ -952,7 +953,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                         <label className="block text-xs font-semibold text-slate-700 mb-1">
                           Biaya Ongkir / Ekspedisi (Rp)
                         </label>
-                        <input
+                        <NumberInput
                           type="number"
                           min="0"
                           value={formShippingFee}

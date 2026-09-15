@@ -1,3 +1,4 @@
+import { NumberInput } from '../common/NumberInput';
 import React, { useState } from 'react';
 import {
   Truck,
@@ -545,7 +546,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                             <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                               Qty Diterima ({item.unit}) *
                             </label>
-                            <input
+                            <NumberInput
                               type="number"
                               min="0"
                               max={item.remainingQuantity}

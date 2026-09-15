@@ -1,3 +1,4 @@
+import { printDocument } from '../../utils/printDocument';
 import React, { useState, useEffect } from 'react';
 import {
   X,
@@ -115,8 +116,8 @@ export const RackQRLabelModal: React.FC<RackQRLabelModalProps> = ({
       ? safeItems
       : safeItems.filter((i) => i.category === filterCategory);
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (event: React.MouseEvent<HTMLButtonElement>) => {
+    void printDocument(event.currentTarget);
   };
 
   return (

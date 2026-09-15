@@ -1,3 +1,4 @@
+import { NumberInput } from '../common/NumberInput';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   QrCode,
@@ -1588,7 +1589,7 @@ export const RackQRScanModal: React.FC<RackQRScanModalProps> = ({
                           <label className="block text-indigo-200 mb-1 font-semibold">
                             Jumlah ({matchedItem.unit}):
                           </label>
-                          <input
+                          <NumberInput
                             type="number"
                             min="1"
                             required

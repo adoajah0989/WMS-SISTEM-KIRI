@@ -1,3 +1,4 @@
+import { printDocument } from '../../utils/printDocument';
 import React, { useState, useEffect } from 'react';
 import {
   PurchaseOrder,
@@ -65,8 +66,8 @@ export const POPrintModal: React.FC<POPrintModalProps> = ({ po, onClose }) => {
     };
   }, [po]);
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (event: React.MouseEvent<HTMLButtonElement>) => {
+    void printDocument(event.currentTarget);
   };
 
   return (
@@ -318,8 +319,8 @@ interface GRNPrintModalProps {
 }
 
 export const GRNPrintModal: React.FC<GRNPrintModalProps> = ({ grn, onClose }) => {
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (event: React.MouseEvent<HTMLButtonElement>) => {
+    void printDocument(event.currentTarget);
   };
 
   return (
@@ -526,8 +527,8 @@ interface PRPrintModalProps {
 }
 
 export const PRPrintModal: React.FC<PRPrintModalProps> = ({ pr, onClose }) => {
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (event: React.MouseEvent<HTMLButtonElement>) => {
+    void printDocument(event.currentTarget);
   };
 
   const priorityBadge = getPriorityBadge(pr.priority);
@@ -749,8 +750,8 @@ export const ComprehensiveReportModal: React.FC<ComprehensiveReportModalProps> =
 
   if (!isOpen) return null;
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (event: React.MouseEvent<HTMLButtonElement>) => {
+    void printDocument(event.currentTarget);
   };
 
   const categories = Array.from(new Set(items.map((i) => i.category)));

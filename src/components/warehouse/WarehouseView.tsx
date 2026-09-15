@@ -1,3 +1,4 @@
+import { NumberInput } from '../common/NumberInput';
 import React, { useState, useEffect } from 'react';
 import {
   Database,
@@ -169,9 +170,21 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
     return matchCategory && matchStatus && matchSearch;
   });
 
+  const generateSku = () => {
+    let sequence = items.reduce((max, item) => {
+      const match = /^SKU-(\d+)$/i.exec(item.sku);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0) + 1;
+    let code = `SKU-${String(sequence).padStart(5, '0')}`;
+    while (items.some(item => item.sku.toLowerCase() === code.toLowerCase())) {
+      code = `SKU-${String(++sequence).padStart(5, '0')}`;
+    }
+    return code;
+  };
+
   const handleOpenAdd = () => {
     setEditingItem(null);
-    setFormSku(`SKU-${Date.now().toString().slice(-4)}`);
+    setFormSku(generateSku());
     setFormName('');
     setFormCategory('Bahan Baku & Kimia Industri');
     setFormUnit('Pcs');
@@ -210,11 +223,16 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
       return;
     }
 
+    const sku = formSku.trim();
+    if (items.some(item => item.id !== editingItem?.id && item.sku.toLowerCase() === sku.toLowerCase())) {
+      alert('SKU sudah digunakan barang lain. Gunakan kode berbeda atau buat kode otomatis.');
+      return;
+    }
     const ratio = formConversionRatio > 0 ? formConversionRatio : 1;
 
     if (editingItem) {
       updateItem(editingItem.id, {
-        sku: formSku,
+        sku,
         name: formName,
         category: formCategory,
         unit: formUnit,
@@ -228,7 +246,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
       });
     } else {
       addItem({
-        sku: formSku,
+        sku,
         name: formName,
         category: formCategory,
         unit: formUnit,
@@ -891,14 +909,25 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1">Kode / SKU Barang *</label>
+                      <div className="flex flex-col gap-2">
                       <input
                         type="text"
                         required
+                        aria-label="Kode SKU barang"
+                        autoCapitalize="characters"
+                        autoCorrect="off"
+                        spellCheck={false}
                         value={formSku}
                         onChange={(e) => setFormSku(e.target.value)}
                         placeholder="Contoh: RAW-PLM-01"
-                        className="w-full border border-slate-300 rounded-lg p-2.5 font-mono text-xs focus:ring-2 focus:ring-emerald-500/30"
+                        className="w-full min-h-[44px] border border-slate-300 rounded-lg p-2.5 font-mono text-base sm:text-sm focus:ring-2 focus:ring-emerald-500/30"
                       />
+                      {!editingItem && <button type="button" onClick={() => setFormSku(generateSku())}
+                        className="min-h-[44px] rounded-lg border border-emerald-300 px-3 text-sm font-semibold text-emerald-700">
+                        Buat SKU otomatis
+                      </button>}
+                      <p className="text-xs text-slate-500">Kode unik barang. Gunakan kode otomatis atau ketik kode Anda sendiri.</p>
+                      </div>
                     </div>
 
                     <div>
@@ -955,7 +984,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
 
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1">Rasio Konversi</label>
-                      <input
+                      <NumberInput
                         type="number"
                         min="1"
                         step="any"
@@ -980,7 +1009,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                     {!editingItem && (
                       <div>
                         <label className="block font-semibold text-slate-700 mb-1">Stok Awal Fisik ({formUnit})</label>
-                        <input
+                        <NumberInput
                           type="number"
                           min="0"
                           value={formInitialStock}
@@ -992,7 +1021,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
 
                     <div className={editingItem ? 'sm:col-span-2' : ''}>
                       <label className="block font-semibold text-slate-700 mb-1">Stok Minimum (Safety Buffer) ({formUnit}) *</label>
-                      <input
+                      <NumberInput
                         type="number"
                         min="0"
                         required
@@ -1018,7 +1047,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
 
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1">Harga Beli Terakhir (Rp) *</label>
-                      <input
+                      <NumberInput
                         type="number"
                         min="0"
                         required
@@ -1157,7 +1186,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                 <label className="block font-semibold text-slate-700 mb-1">
                   Jumlah Penyesuaian ({selectedItemForAdjust.unit}) *
                 </label>
-                <input
+                <NumberInput
                   type="number"
                   min="1"
                   required

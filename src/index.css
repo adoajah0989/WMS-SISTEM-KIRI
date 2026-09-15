@@ -10,6 +10,14 @@
   }
 }
 
+#kiri-print-root { display: none; }
+
+@media print {
+  body:has(> #kiri-print-root) > :not(#kiri-print-root) { display: none !important; }
+  #kiri-print-root { display: block !important; visibility: visible !important; }
+  #kiri-print-root > .printable-area { position: static !important; }
+}
+
 /* Comprehensive Professional Print Styles */
 @media print {
   html, body {
