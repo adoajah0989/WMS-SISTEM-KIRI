@@ -7,23 +7,24 @@ import {
   Database,
   Building2,
   LayoutDashboard,
-  RotateCcw,
-  Download,
   Search,
   X,
   Menu,
-  Trash2,
-  Sparkles,
   QrCode,
+  LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { ActiveTab } from '../../types';
+import { useAuth } from '../auth/AuthContext';
+import { canScanWarehouse, ROLE_LABELS, ROLE_TABS } from '../../lib/permissions';
 
 interface HeaderProps {
   onOpenScanQR?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
+  const { profile, signOut } = useAuth();
   const {
     activeTab,
     setActiveTab,
@@ -32,9 +33,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
     getPendingPRsCount,
     getLowStockItems,
     getActivePOsCount,
-    clearAllDatabase,
-    loadSampleData,
-    exportDatabaseJSON,
   } = usePurchasing();
 
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -43,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
   const lowStockCount = getLowStockItems().length;
   const activePOs = getActivePOsCount();
 
-  const navItems: { id: ActiveTab; label: string; icon: React.FC<{ className?: string }>; badge?: number; badgeType?: 'warning' | 'info' | 'danger' }[] = [
+  const allNavItems: { id: ActiveTab; label: string; icon: React.FC<{ className?: string }>; badge?: number; badgeType?: 'warning' | 'info' | 'danger' }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'requisitions', label: 'Permintaan (PR)', icon: FileText, badge: pendingPRs, badgeType: 'warning' },
     { id: 'purchase_orders', label: 'Purchase Order (PO)', icon: ShoppingCart, badge: activePOs, badgeType: 'info' },
@@ -51,6 +49,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
     { id: 'warehouse', label: 'Stok Gudang', icon: Database, badge: lowStockCount > 0 ? lowStockCount : undefined, badgeType: 'danger' },
     { id: 'suppliers', label: 'Supplier', icon: Building2 },
   ];
+  const navItems = allNavItems.filter(item => ROLE_TABS[profile.role].includes(item.id));
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-xs no-print">
@@ -112,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
             </button>
 
             {/* Scan QR Rak Shortcut Button */}
-            {onOpenScanQR && (
+            {onOpenScanQR && canScanWarehouse(profile.role) && (
               <button
                 onClick={onOpenScanQR}
                 title="Pindai QR Code Rak Gudang"
@@ -123,32 +122,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
               </button>
             )}
 
-            {/* Backup & Database Management buttons */}
             <div className="flex items-center gap-1 border-l border-slate-200 pl-1.5 sm:pl-2.5">
-              <button
-                onClick={clearAllDatabase}
-                title="Kosongkan Database (Mulai dari nol)"
-                className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-lg transition min-h-[36px]"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-rose-500" />
-                <span className="hidden sm:inline">Kosongkan Data</span>
-              </button>
-              <button
-                onClick={loadSampleData}
-                title="Muat Contoh Data Simulasi"
-                className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-lg transition min-h-[36px]"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-slate-400 hover:text-indigo-500" />
-                <span className="hidden sm:inline">Contoh Data</span>
-              </button>
-              <button
-                onClick={exportDatabaseJSON}
-                title="Backup / Export Data JSON"
-                className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition min-h-[36px]"
-              >
-                <Download className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden sm:inline">Backup</span>
-              </button>
+              {profile.role === 'master' && <a href="/admin" title="Buka halaman admin" className="flex min-h-[36px] items-center gap-1 rounded-lg border border-slate-200 px-2 text-xs font-bold text-slate-700 hover:bg-slate-50"><ShieldCheck className="h-4 w-4" /><span className="hidden lg:inline">Admin</span></a>}
+              <span className="hidden rounded-lg bg-slate-100 px-2 py-1.5 text-[10px] font-bold text-slate-600 sm:inline">{ROLE_LABELS[profile.role]}</span>
+              <button onClick={() => void signOut()} title="Keluar" aria-label="Keluar" className="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-600"><LogOut className="h-4 w-4" /></button>
             </div>
           </div>
         </div>

@@ -28,6 +28,8 @@ import {
   getPriorityBadge,
 } from '../../utils/formatters';
 import { PRPrintModal } from '../common/PrintTemplates';
+import { useAuth } from '../auth/AuthContext';
+import { canCreatePO } from '../../lib/permissions';
 
 interface RequisitionViewProps {
   isCreateModalOpen: boolean;
@@ -40,6 +42,9 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
   setIsCreateModalOpen,
   onConvertToPOFromPR,
 }) => {
+  const { profile } = useAuth();
+  const canApprove = profile.role === 'master' || profile.role === 'manajer';
+  const canConvert = canCreatePO(profile.role);
   const {
     requisitions,
     items: warehouseItems,
@@ -196,7 +201,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
   };
 
   const handleConfirmApproval = () => {
-    if (!approvalModalPR) return;
+    if (!approvalModalPR || !canApprove) return;
     if (approvalAction === 'approve') {
       updatePRStatus(approvalModalPR.id, 'disetujui', approverName);
     } else {
@@ -376,7 +381,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                           </button>
 
                           {/* Approval / Reject for Pending PRs */}
-                          {pr.status === 'menunggu_persetujuan' && (
+                          {pr.status === 'menunggu_persetujuan' && canApprove && (
                             <>
                               <button
                                 onClick={() => {
@@ -404,7 +409,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                           )}
 
                           {/* Convert to PO for Approved PRs */}
-                          {pr.status === 'disetujui' && (
+                          {pr.status === 'disetujui' && canConvert && (
                             <button
                               onClick={() => onConvertToPOFromPR(pr)}
                               className="px-2.5 py-1 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition shadow-xs flex items-center gap-1"
@@ -518,7 +523,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                     <Printer className="w-3.5 h-3.5" />
                   </button>
 
-                  {pr.status === 'menunggu_persetujuan' && (
+                  {pr.status === 'menunggu_persetujuan' && canApprove && (
                     <>
                       <button
                         onClick={() => {
@@ -543,7 +548,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                     </>
                   )}
 
-                  {pr.status === 'disetujui' && (
+                  {pr.status === 'disetujui' && canConvert && (
                     <button
                       onClick={() => onConvertToPOFromPR(pr)}
                       className="flex-1 py-2.5 px-3 bg-indigo-600 active:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 min-h-[42px] shadow-2xs"

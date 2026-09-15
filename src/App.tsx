@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PurchasingProvider, usePurchasing } from './context/PurchasingContext';
 import { Header } from './components/layout/Header';
 import { BottomNav } from './components/layout/BottomNav';
@@ -14,9 +14,18 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AuthGate } from './components/auth/AuthGate';
 import { CloudSync } from './components/common/CloudSync';
 import { PurchaseRequisition, PurchaseOrder, WarehouseItem } from './types';
+import { useAuth } from './components/auth/AuthContext';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { canScanWarehouse, ROLE_TABS } from './lib/permissions';
 
 const MainContent: React.FC = () => {
   const { activeTab, setActiveTab, items } = usePurchasing();
+  const { profile } = useAuth();
+  const canScan = canScanWarehouse(profile.role);
+
+  useEffect(() => {
+    if (!ROLE_TABS[profile.role].includes(activeTab)) setActiveTab('dashboard');
+  }, [activeTab, profile.role, setActiveTab]);
 
   // Cross-module states
   const [isPRCreateOpen, setIsPRCreateOpen] = useState(false);
@@ -62,10 +71,10 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans antialiased text-slate-900">
-      <Header onOpenScanQR={() => {
+      <Header onOpenScanQR={canScan ? () => {
         setSelectedItemForQRScan(null);
         setIsQRScanOpen(true);
-      }} />
+      } : undefined} />
 
       {/* Main Content with bottom padding to account for mobile BottomNav */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-7 pb-24 md:pb-8">
@@ -85,10 +94,10 @@ const MainContent: React.FC = () => {
               setActiveTab('goods_receipts');
               setIsGRNCreateOpen(true);
             }}
-            onOpenScanQR={() => {
+            onOpenScanQR={canScan ? () => {
               setSelectedItemForQRScan(null);
               setIsQRScanOpen(true);
-            }}
+            } : undefined}
           />
         )}
 
@@ -135,10 +144,10 @@ const MainContent: React.FC = () => {
       </main>
 
       {/* Mobile Ergonomic Bottom Navigation Bar with Floating Scan QR button */}
-      <BottomNav onOpenScanQR={() => {
+      <BottomNav onOpenScanQR={canScan ? () => {
         setSelectedItemForQRScan(null);
         setIsQRScanOpen(true);
-      }} />
+      } : undefined} />
 
       {/* Rack QR Tracking Scanner Modal */}
       <RackQRScanModal
@@ -202,14 +211,21 @@ const MainContent: React.FC = () => {
 };
 
 export default function App() {
+  const isAdmin = /^\/admin\/?$/.test(window.location.pathname);
   return (
     <ErrorBoundary fallbackTitle="Terjadi Kendala Pada Aplikasi Kiri Purchasing">
-      <AuthGate>
-        <PurchasingProvider>
-          <CloudSync />
-          <MainContent />
-        </PurchasingProvider>
-      </AuthGate>
+      {isAdmin ? (
+        <AuthGate requiredRole="master" allowRegistration={false} loadCloudSnapshot={false}>
+          <AdminDashboard />
+        </AuthGate>
+      ) : (
+        <AuthGate>
+          <PurchasingProvider>
+            <CloudSync />
+            <MainContent />
+          </PurchasingProvider>
+        </AuthGate>
+      )}
     </ErrorBoundary>
   );
 }

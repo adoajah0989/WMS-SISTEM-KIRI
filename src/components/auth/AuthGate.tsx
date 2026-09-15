@@ -2,6 +2,7 @@ import React, { FormEvent, ReactNode, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 import { restoreCloudSnapshot } from '../../services/cloudPersistence';
+import { AuthContext, type AppRole, type AuthProfile } from './AuthContext';
 
 type AuthMode = 'login' | 'register' | 'verify';
 
@@ -18,8 +19,21 @@ const authErrorMessage = (error: unknown) => {
   return message;
 };
 
-export const AuthGate: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface AuthGateProps {
+  children: ReactNode;
+  requiredRole?: AppRole;
+  allowRegistration?: boolean;
+  loadCloudSnapshot?: boolean;
+}
+
+export const AuthGate: React.FC<AuthGateProps> = ({
+  children,
+  requiredRole,
+  allowRegistration = true,
+  loadCloudSnapshot = true,
+}) => {
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
@@ -33,13 +47,14 @@ export const AuthGate: React.FC<{ children: ReactNode }> = ({ children }) => {
   const prepareSession = async (nextSession: Session | null) => {
     if (!nextSession || !supabase) {
       setSession(null);
+      setProfile(null);
       setReady(true);
       return;
     }
 
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('role, is_active')
+      .select('full_name, role, is_active')
       .eq('id', nextSession.user.id)
       .single();
 
@@ -57,7 +72,14 @@ export const AuthGate: React.FC<{ children: ReactNode }> = ({ children }) => {
       throw new Error('Email berhasil diverifikasi. Akun menunggu aktivasi dari Master.');
     }
 
-    await restoreCloudSnapshot();
+    if (loadCloudSnapshot) await restoreCloudSnapshot();
+    setProfile({
+      id: nextSession.user.id,
+      email: nextSession.user.email || '',
+      fullName: profile.full_name || nextSession.user.email || 'Pengguna',
+      role: profile.role as AppRole,
+      isActive: profile.is_active,
+    });
     setSession(nextSession);
     setReady(true);
   };
@@ -79,6 +101,7 @@ export const AuthGate: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (event === 'SIGNED_OUT' || !nextSession) {
         setSession(null);
+        setProfile(null);
         setReady(true);
         return;
       }
@@ -182,9 +205,9 @@ export const AuthGate: React.FC<{ children: ReactNode }> = ({ children }) => {
         <form onSubmit={submit} className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
           <div className="mb-6">
             <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500 font-black text-slate-950">K</div>
-            <h1 className="text-2xl font-black text-slate-900">KIRI WMS</h1>
+            <h1 className="text-2xl font-black text-slate-900">{requiredRole ? 'ADMIN KIRI WMS' : 'KIRI WMS'}</h1>
             <p className="mt-1 text-sm text-slate-500">
-              {mode === 'login' && 'Masuk ke sistem purchasing'}
+              {mode === 'login' && (requiredRole ? 'Masuk dengan akun Master' : 'Masuk ke sistem purchasing')}
               {mode === 'register' && 'Daftarkan akun pengguna'}
               {mode === 'verify' && `Masukkan kode yang dikirim ke ${pendingEmail}`}
             </p>
@@ -229,21 +252,43 @@ export const AuthGate: React.FC<{ children: ReactNode }> = ({ children }) => {
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setMode(mode === 'login' ? 'register' : 'login');
-              setMessage('');
-            }}
-            className="mt-4 w-full text-sm font-semibold text-slate-600"
-          >
-            {mode === 'login' ? 'Belum punya akun? Daftar' : 'Kembali ke halaman masuk'}
-          </button>
+          {allowRegistration && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === 'login' ? 'register' : 'login');
+                setMessage('');
+              }}
+              className="mt-4 w-full text-sm font-semibold text-slate-600"
+            >
+              {mode === 'login' ? 'Belum punya akun? Daftar' : 'Kembali ke halaman masuk'}
+            </button>
+          )}
+          {requiredRole && <a href="/" className="mt-4 block text-center text-sm font-semibold text-slate-500">Kembali ke aplikasi</a>}
         </form>
       </main>
     );
   }
 
-  return <>{children}</>;
-};
+  if (!profile || !session) return null;
 
+  const signOut = async () => {
+    if (supabase) await supabase.auth.signOut();
+    window.location.assign(requiredRole ? '/admin' : '/');
+  };
+
+  if (requiredRole && profile.role !== requiredRole) {
+    return (
+      <main className="min-h-screen grid place-items-center bg-slate-950 p-4">
+        <div className="w-full max-w-md rounded-3xl bg-white p-7 text-center shadow-2xl">
+          <h1 className="text-xl font-black text-slate-900">Akses admin ditolak</h1>
+          <p className="mt-2 text-sm text-slate-600">Halaman ini hanya dapat dibuka oleh akun Master.</p>
+          <a href="/" className="mt-5 block rounded-xl bg-emerald-500 px-4 py-3 font-bold text-slate-950">Kembali ke aplikasi</a>
+          <button onClick={() => void signOut()} className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">Keluar dan ganti akun</button>
+        </div>
+      </main>
+    );
+  }
+
+  return <AuthContext.Provider value={{ session, profile, signOut }}>{children}</AuthContext.Provider>;
+};
