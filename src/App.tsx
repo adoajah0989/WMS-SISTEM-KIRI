@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { PurchasingProvider, usePurchasing } from './context/PurchasingContext';
 import { Header } from './components/layout/Header';
 import { BottomNav } from './components/layout/BottomNav';
+import { Sidebar } from './components/layout/Sidebar';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { RequisitionView } from './components/requisition/RequisitionView';
 import { PurchaseOrderView } from './components/po/PurchaseOrderView';
@@ -70,14 +71,20 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans antialiased text-slate-900">
+    <div className="min-h-screen bg-[#f3f2ef] font-sans antialiased text-[#242424]">
+      <Sidebar onOpenScanQR={canScan ? () => {
+        setSelectedItemForQRScan(null);
+        setIsQRScanOpen(true);
+      } : undefined} />
+
+      <div className="min-h-screen md:pl-[248px] flex flex-col">
       <Header onOpenScanQR={canScan ? () => {
         setSelectedItemForQRScan(null);
         setIsQRScanOpen(true);
       } : undefined} />
 
       {/* Main Content with bottom padding to account for mobile BottomNav */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-7 pb-24 md:pb-8">
+      <main className="flex-1 w-full max-w-[1560px] mx-auto px-3 sm:px-5 lg:px-7 py-3 sm:py-5 pb-28 md:pb-8">
         {activeTab === 'dashboard' && (
           <DashboardView
             onOpenCreatePR={() => {
@@ -182,30 +189,11 @@ const MainContent: React.FC = () => {
         preselectedItem={selectedItemForQRLabel}
       />
 
-      {/* Desktop Footer */}
-      <footer className="bg-white border-t border-slate-200/80 text-slate-500 py-5 mt-auto text-xs no-print hidden md:block">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-slate-900 flex items-center justify-center text-emerald-400 font-bold text-[10px]">
-              K
-            </div>
-            <span className="font-bold text-slate-800">KIRI PURCHASING</span>
-            <span className="text-slate-400">&bull; Sistem Pengadaan & Database Gudang Terintegrasi</span>
-          </div>
-
-          <div className="flex items-center gap-3 text-slate-400">
-            <span>Pemesanan (PR)</span>
-            <span>&bull;</span>
-            <span>Purchase Order (PO)</span>
-            <span>&bull;</span>
-            <span>Penerimaan (GRN)</span>
-            <span>&bull;</span>
-            <span>Warehouse DB</span>
-            <span>&bull;</span>
-            <span>QR Tracking</span>
-          </div>
-        </div>
+      <footer className="no-print mt-auto hidden border-t border-[#e7e5e0] px-7 py-4 text-[11px] text-[#888781] md:flex md:items-center md:justify-between">
+        <span>Kiri Supply · Pengadaan & inventaris terintegrasi</span>
+        <span>PR · PO · Penerimaan · Warehouse</span>
       </footer>
+      </div>
     </div>
   );
 };

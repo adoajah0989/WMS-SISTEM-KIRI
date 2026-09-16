@@ -1,12 +1,70 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: light;
+  --kiri-canvas: #f3f2ef;
+  --kiri-surface: #ffffff;
+  --kiri-text: #242424;
+  --kiri-muted: #777773;
+  --kiri-border: #e7e5e0;
+  --kiri-brand: #82dd70;
+}
+
 @layer base {
+  * { box-sizing: border-box; }
+
+  html { background: var(--kiri-canvas); }
+
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    margin: 0;
+    min-width: 320px;
+    background: var(--kiri-canvas);
+    color: var(--kiri-text);
+    -webkit-font-smoothing: antialiased;
   }
 
   code, kbd, samp, pre {
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+@layer components {
+  .kiri-surface {
+    background: var(--kiri-surface);
+    border: 1px solid var(--kiri-border);
+    border-radius: 1rem;
+    box-shadow: 0 8px 24px rgba(35, 35, 30, 0.05);
+  }
+
+  .kiri-focus {
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .kiri-focus:focus-visible {
+    border-color: #76ca67;
+    box-shadow: 0 0 0 4px rgba(130, 221, 112, 0.2);
+  }
+}
+
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid #4f9e44;
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  input, select, textarea { font-size: 16px !important; }
+  body { overscroll-behavior-y: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

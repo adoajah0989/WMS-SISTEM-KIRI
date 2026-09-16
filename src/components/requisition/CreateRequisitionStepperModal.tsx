@@ -23,6 +23,8 @@ import {
   AlertTriangle,
   Minus,
   Layers,
+  Search,
+  ListFilter,
 } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { PRItem, PriorityLevel, WarehouseItem, PRStatus } from '../../types';
@@ -95,6 +97,29 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
       notes: '',
     },
   ]);
+  const [stockPickerOpen, setStockPickerOpen] = useState(true);
+  const [stockSearch, setStockSearch] = useState('');
+  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'empty' | 'critical' | 'low'>('all');
+  const [stockCategoryFilter, setStockCategoryFilter] = useState('all');
+  const [stockRackFilter, setStockRackFilter] = useState('all');
+  const [selectedStockIds, setSelectedStockIds] = useState<string[]>([]);
+
+  const stockCategories = Array.from(new Set(warehouseItems.map((item) => item.category).filter(Boolean))).sort();
+  const stockRacks = Array.from(new Set(warehouseItems.map((item) => item.warehouseLocation).filter(Boolean))).sort();
+  const recommendedWarehouseItems = warehouseItems
+    .filter((item) => item.currentStock <= item.minStock)
+    .filter((item) => {
+      const query = stockSearch.trim().toLowerCase();
+      const matchesSearch = !query || item.name.toLowerCase().includes(query) || item.sku.toLowerCase().includes(query);
+      const matchesCategory = stockCategoryFilter === 'all' || item.category === stockCategoryFilter;
+      const matchesRack = stockRackFilter === 'all' || item.warehouseLocation === stockRackFilter;
+      const matchesStatus = stockStatusFilter === 'all'
+        || (stockStatusFilter === 'empty' && item.currentStock <= 0)
+        || (stockStatusFilter === 'critical' && item.currentStock > 0 && item.currentStock <= item.minStock * 0.5)
+        || (stockStatusFilter === 'low' && item.currentStock > item.minStock * 0.5 && item.currentStock <= item.minStock);
+      return matchesSearch && matchesCategory && matchesRack && matchesStatus;
+    })
+    .sort((a, b) => (a.currentStock / Math.max(a.minStock, 1)) - (b.currentStock / Math.max(b.minStock, 1)));
 
   // Pre-fill if initialItem is provided (e.g. from Warehouse or Rack Scan)
   useEffect(() => {
@@ -257,6 +282,39 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
     }
   };
 
+  const handleToggleStockItem = (itemId: string) => {
+    setSelectedStockIds((current) => current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId]);
+  };
+
+  const handleApplyStockSelection = () => {
+    const selected = warehouseItems.filter((item) => selectedStockIds.includes(item.id));
+    if (!selected.length) {
+      setValidationError('Pilih minimal satu barang kosong atau menipis sebelum menekan Apply.');
+      return;
+    }
+    setItems((current) => {
+      const populated = current.filter((item) => item.itemName.trim().length > 0);
+      const existingIds = new Set(populated.map((item) => item.itemId).filter(Boolean));
+      const additions: PRItem[] = selected.filter((item) => !existingIds.has(item.id)).map((item, index) => ({
+        id: `pri-${Date.now()}-stock-${index}`,
+        itemId: item.id,
+        sku: item.sku,
+        itemName: item.name,
+        category: item.category,
+        unit: item.purchaseUnit || item.unit,
+        stockUnit: item.unit,
+        conversionRatio: item.conversionRatio || 1,
+        quantity: Math.max(1, Math.ceil(((item.minStock * 2) - item.currentStock) / Math.max(item.conversionRatio || 1, 1))),
+        estimatedUnitPrice: item.lastPurchasePrice || 0,
+        notes: `Otomatis dari stok: ${item.currentStock} ${item.unit}, minimum ${item.minStock} ${item.unit}`,
+      }));
+      return [...populated, ...additions];
+    });
+    setValidationError(null);
+    setSelectedStockIds([]);
+    setStockPickerOpen(false);
+  };
+
   // Quick fill mock data for demonstration
   const handleLoadDemoData = () => {
     setDepartment('Gudang & Logistik');
@@ -385,30 +443,30 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/70 backdrop-blur-xs md:p-4 md:items-center md:justify-center overflow-hidden animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#242424]/45 backdrop-blur-sm md:p-4 md:items-center md:justify-center overflow-hidden animate-in fade-in duration-200">
       {/* Modal Container: Full Screen on Mobile, Rounded Card on Desktop */}
-      <div className="flex flex-col w-full h-full md:max-w-xl md:h-[94vh] md:max-h-[850px] bg-white md:rounded-3xl shadow-2xl overflow-hidden relative">
+      <div className="flex flex-col w-full h-full md:max-w-3xl md:h-[94vh] md:max-h-[900px] bg-[#f8f7f4] md:rounded-[24px] shadow-2xl overflow-hidden relative border border-white/60">
         
         {/* TOP APP BAR / HEADER (Matching user screenshot) */}
-        <div className="bg-[#0B192C] text-white px-4 py-3.5 flex items-center justify-between shadow-md shrink-0 select-none">
+        <div className="bg-white text-[#242424] px-4 py-3.5 flex items-center justify-between border-b border-[#e7e5e0] shrink-0 select-none">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="p-1.5 -ml-1 text-slate-300 hover:text-white active:scale-95 rounded-full transition"
+              className="p-1.5 -ml-1 text-[#77766f] hover:text-[#222] active:scale-95 rounded-full transition"
               aria-label="Kembali"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
 
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[#e5f6e1] border border-[#cae9c3] text-[#397c31] flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5" />
             </div>
 
             <div>
-              <h2 className="text-sm sm:text-base font-bold text-white leading-tight">
+              <h2 className="text-sm sm:text-base font-bold text-[#292929] leading-tight">
                 Buat Permintaan Barang
               </h2>
-              <p className="text-[11px] text-slate-300 font-normal">
+              <p className="text-[11px] text-[#85847e] font-normal">
                 Purchase Request (PR)
               </p>
             </div>
@@ -417,7 +475,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           <div className="relative">
             <button
               onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-              className="p-2 text-slate-300 hover:text-white rounded-lg active:bg-slate-800 transition"
+              className="p-2 text-[#77766f] hover:text-[#222] rounded-lg active:bg-[#f0efeb] transition"
               aria-label="Menu Opsi"
             >
               <MoreVertical className="w-5 h-5" />
@@ -470,7 +528,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         </div>
 
         {/* STEPPER PROGRESS BAR (Matching 1 - 2 - 3 design) */}
-        <div className="bg-white border-b border-slate-100 px-6 py-3.5 shrink-0">
+        <div className="bg-white border-b border-[#eceae5] px-6 py-3.5 shrink-0">
           <div className="flex items-center justify-between max-w-sm mx-auto">
             {/* Step 1: Detail */}
             <button
@@ -586,7 +644,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         )}
 
         {/* SCROLLABLE FORM BODY */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 pb-28 space-y-5 bg-white">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 pb-28 space-y-5 bg-[#f8f7f4]">
           
           {/* ======================================================== */}
           {/* STEP 1: DETAIL (INFORMASI PERMINTAAN)                    */}
@@ -794,6 +852,61 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                   <span>Tambah Item</span>
                 </button>
               </div>
+
+              {/* Smart stock picker: choose first, edit quantity afterwards */}
+              <section className="overflow-hidden rounded-2xl border border-[#dfddd7] bg-[#faf9f6]">
+                <button
+                  type="button"
+                  onClick={() => setStockPickerOpen((value) => !value)}
+                  className="flex min-h-14 w-full items-center justify-between gap-3 px-3.5 py-3 text-left"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e5f6e1] text-[#397c31]">
+                      <Sparkles className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="block truncate text-xs text-[#333]">Ambil dari stok kosong & menipis</strong>
+                      <span className="mt-0.5 block truncate text-[10px] text-[#85847e]">Pilih berdasarkan status, kategori, atau rak</span>
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[10px] font-semibold text-[#65645f] shadow-sm">{recommendedWarehouseItems.length} item</span>
+                </button>
+
+                {stockPickerOpen && <div className="border-t border-[#e7e5e0] bg-white p-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#999892]" />
+                    <input value={stockSearch} onChange={(event) => setStockSearch(event.target.value)} placeholder="Cari nama barang atau SKU..." className="h-11 w-full rounded-xl border border-[#deddd7] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#76ca67] focus:ring-4 focus:ring-[#82dd70]/15" />
+                  </div>
+
+                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                    {([
+                      ['all', 'Semua risiko'], ['empty', 'Kosong'], ['critical', 'Sekarat'], ['low', 'Menipis'],
+                    ] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setStockStatusFilter(value)} className={`min-h-9 shrink-0 rounded-xl px-3 text-[11px] font-semibold ${stockStatusFilter === value ? 'bg-[#252525] text-white' : 'border border-[#dfddd7] bg-white text-[#666]'}`}>{label}</button>)}
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <label className="relative"><ListFilter className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#999892]" /><select value={stockCategoryFilter} onChange={(event) => setStockCategoryFilter(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-[#dfddd7] bg-white pl-8 pr-2 text-xs text-[#555]"><option value="all">Semua kategori</option>{stockCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
+                    <label className="relative"><Layers className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#999892]" /><select value={stockRackFilter} onChange={(event) => setStockRackFilter(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-[#dfddd7] bg-white pl-8 pr-2 text-xs text-[#555]"><option value="all">Semua rak</option>{stockRacks.map((rack) => <option key={rack} value={rack}>{rack}</option>)}</select></label>
+                  </div>
+
+                  <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-0.5">
+                    {recommendedWarehouseItems.length === 0 ? <div className="rounded-xl bg-[#f5f4f0] p-5 text-center text-xs text-[#85847e]">Tidak ada barang yang cocok dengan filter.</div> : recommendedWarehouseItems.map((stockItem) => {
+                      const checked = selectedStockIds.includes(stockItem.id);
+                      const status = stockItem.currentStock <= 0 ? 'Kosong' : stockItem.currentStock <= stockItem.minStock * .5 ? 'Sekarat' : 'Menipis';
+                      return <button key={stockItem.id} type="button" onClick={() => handleToggleStockItem(stockItem.id)} className={`flex min-h-16 w-full items-center gap-3 rounded-xl border p-3 text-left transition ${checked ? 'border-[#72c862] bg-[#edf8ea]' : 'border-[#e7e5e0] bg-white'}`}>
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked ? 'border-[#5eaf51] bg-[#67bf59] text-white' : 'border-[#c8c6bf] bg-white text-transparent'}`}><Check className="h-3.5 w-3.5" /></span>
+                        <span className="min-w-0 flex-1"><span className="flex items-center gap-1.5"><strong className="truncate text-xs text-[#333]">{stockItem.name}</strong><span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold ${status === 'Kosong' ? 'bg-[#ffe7e4] text-[#bd4943]' : status === 'Sekarat' ? 'bg-[#fff0df] text-[#b45f18]' : 'bg-[#fff6d9] text-[#947016]'}`}>{status}</span></span><span className="mt-1 block truncate text-[10px] text-[#85847e]">{stockItem.sku} · {stockItem.category} · {stockItem.warehouseLocation}</span></span>
+                        <span className="shrink-0 text-right"><strong className="block text-sm tabular-nums text-[#333]">{stockItem.currentStock}</strong><span className="text-[9px] text-[#85847e]">{stockItem.unit} / min {stockItem.minStock}</span></span>
+                      </button>;
+                    })}
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#eceae5] pt-3">
+                    <span className="text-[11px] text-[#77766f]">{selectedStockIds.length} barang dipilih</span>
+                    <button type="button" onClick={handleApplyStockSelection} className="min-h-10 rounded-xl bg-[#252525] px-4 text-xs font-semibold text-white"><span className="text-[#82dd70]">Apply</span> ke PR</button>
+                  </div>
+                </div>}
+              </section>
 
               {/* Items List */}
               <div className="space-y-3.5">
@@ -1150,7 +1263,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         {/* ======================================================== */}
         {/* STICKY BOTTOM ACTION BAR (Matching user screenshot)      */}
         {/* ======================================================== */}
-        <div className="absolute bottom-0 inset-x-0 bg-white border-t border-slate-200 px-4 py-3 shadow-lg flex items-center gap-3 z-10">
+        <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur-lg border-t border-[#e3e1da] px-4 sm:px-6 py-3 shadow-[0_-10px_26px_rgba(35,35,30,.08)] flex items-center gap-3 z-10" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
           
           {/* STEP 1 ACTIONS */}
           {currentStep === 1 && (
