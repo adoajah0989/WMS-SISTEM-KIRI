@@ -18,7 +18,9 @@ export interface WarehouseItem {
   currentStock: number; // in base units
   minStock: number;
   warehouseLocation: string; // e.g. Rak A-01, Gudang Utama
-  lastPurchasePrice: number; // price per base unit or purchase unit
+  lastPurchasePrice: number; // Last price entered; interpreted by priceBasis
+  priceBasis?: 'purchase_unit' | 'base_unit'; // Missing means legacy base-unit price
+  averageUnitCost?: number; // Weighted-average inventory cost per base unit
   primarySupplierId?: string;
   description?: string;
   updatedAt: string;

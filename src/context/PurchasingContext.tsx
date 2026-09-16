@@ -20,6 +20,11 @@ import {
   INITIAL_STOCK_MOVEMENTS,
 } from '../data/initialData';
 import { recordActivity } from '../services/activityLog';
+import {
+  calculateWeightedAverageCost,
+  getAverageUnitCost,
+  getInventoryValue,
+} from '../utils/inventoryPricing';
 
 interface PurchasingContextType {
   // Navigation & UI state
@@ -423,6 +428,9 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       sku: item.sku || `SKU-${idx + 1}`,
       itemName: item.itemName,
       unit: item.unit,
+      purchaseUnit: item.unit,
+      stockUnit: item.stockUnit,
+      conversionRatio: item.conversionRatio && item.conversionRatio > 0 ? item.conversionRatio : 1,
       quantity: item.quantity,
       unitPrice: item.estimatedUnitPrice || 0,
       discountPercent: 0,
@@ -554,7 +562,12 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
 
     // 2. Increase Warehouse inventory & Create Stock Movement Logs for accepted items
     const newMovements: StockMovement[] = [];
-    const itemUpdatesMap: Record<string, number> = {};
+    const itemUpdatesMap: Record<string, {
+      stock: number;
+      averageUnitCost: number;
+      lastPurchasePrice: number;
+      priceBasis: 'purchase_unit' | 'base_unit';
+    }> = {};
 
     grnData.items.forEach((receiptItem) => {
       // Only add to available inventory if condition is 'baik'
@@ -568,7 +581,33 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       );
 
       if (existingItem) {
-        itemUpdatesMap[existingItem.id] = (itemUpdatesMap[existingItem.id] || existingItem.currentStock) + stockQtyToAdd;
+        const previousUpdate = itemUpdatesMap[existingItem.id];
+        const stockBeforeReceipt = previousUpdate?.stock ?? existingItem.currentStock;
+        const averageBeforeReceipt = previousUpdate?.averageUnitCost ?? getAverageUnitCost(existingItem);
+        const matchingPoItem = targetPO?.items.find(
+          (poItem) => poItem.id === receiptItem.poItemId || poItem.sku === receiptItem.sku
+        );
+        const purchaseUnitPrice = matchingPoItem
+          ? matchingPoItem.unitPrice * (1 - (matchingPoItem.discountPercent || 0) / 100)
+          : previousUpdate?.lastPurchasePrice ?? 0;
+        const receivedBaseUnitCost = purchaseUnitPrice / ratio;
+        itemUpdatesMap[existingItem.id] = {
+          stock: stockBeforeReceipt + stockQtyToAdd,
+          averageUnitCost: stockQtyToAdd > 0 && matchingPoItem
+            ? calculateWeightedAverageCost(
+                stockBeforeReceipt,
+                averageBeforeReceipt,
+                stockQtyToAdd,
+                receivedBaseUnitCost
+              )
+            : averageBeforeReceipt,
+          lastPurchasePrice: matchingPoItem
+            ? purchaseUnitPrice
+            : previousUpdate?.lastPurchasePrice ?? existingItem.lastPurchasePrice,
+          priceBasis: matchingPoItem
+            ? 'purchase_unit'
+            : previousUpdate?.priceBasis ?? existingItem.priceBasis ?? 'base_unit',
+        };
         
         if (stockQtyToAdd > 0) {
           const unitNote = ratio > 1 
@@ -601,10 +640,14 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     if (Object.keys(itemUpdatesMap).length > 0) {
       setItems((prev) =>
         prev.map((item) => {
-          if (itemUpdatesMap[item.id] !== undefined) {
+          const update = itemUpdatesMap[item.id];
+          if (update !== undefined) {
             return {
               ...item,
-              currentStock: itemUpdatesMap[item.id],
+              currentStock: update.stock,
+              lastPurchasePrice: update.lastPurchasePrice,
+              priceBasis: update.priceBasis,
+              averageUnitCost: update.averageUnitCost,
               updatedAt: new Date().toISOString(),
             };
           }
@@ -681,7 +724,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   const getInventoryAssetValue = () => {
-    return items.reduce((sum, item) => sum + item.currentStock * item.lastPurchasePrice, 0);
+    return items.reduce((sum, item) => sum + getInventoryValue(item), 0);
   };
 
   const importWarehouseItems = (
@@ -702,6 +745,14 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       minStock: typeof imp.minStock === 'number' ? imp.minStock : 10,
       warehouseLocation: imp.warehouseLocation || 'Gudang Utama',
       lastPurchasePrice: typeof imp.lastPurchasePrice === 'number' ? imp.lastPurchasePrice : 0,
+      priceBasis: imp.priceBasis || 'base_unit',
+      averageUnitCost: typeof imp.averageUnitCost === 'number'
+        ? imp.averageUnitCost
+        : getAverageUnitCost({
+            lastPurchasePrice: typeof imp.lastPurchasePrice === 'number' ? imp.lastPurchasePrice : 0,
+            priceBasis: imp.priceBasis || 'base_unit',
+            conversionRatio: imp.conversionRatio,
+          }),
       primarySupplierId: imp.primarySupplierId || '',
       description: imp.description || '',
       updatedAt: new Date().toISOString(),

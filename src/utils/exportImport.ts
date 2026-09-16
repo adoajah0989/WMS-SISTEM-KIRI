@@ -1,4 +1,5 @@
-import { WarehouseItem, Supplier, PurchaseOrder, GoodsReceipt, PurchaseRequisition, StockMovement } from '../types';
+import type { WarehouseItem, Supplier, PurchaseOrder, GoodsReceipt, PurchaseRequisition, StockMovement } from '../types/index.ts';
+import { getAverageUnitCost, getPurchaseUnitPrice } from './inventoryPricing.ts';
 
 /**
  * Trigger browser file download for a string content
@@ -104,7 +105,8 @@ export function exportWarehouseItemsCSV(items: WarehouseItem[]) {
     'Stok Saat Ini',
     'Stok Minimum',
     'Lokasi Rak / Gudang',
-    'Harga Beli Terakhir (Rp)',
+    'Harga Beli per Satuan Beli (Rp)',
+    'Harga Rata-rata per Satuan Dasar (Rp)',
     'Deskripsi / Catatan',
   ];
 
@@ -118,7 +120,8 @@ export function exportWarehouseItemsCSV(items: WarehouseItem[]) {
     escapeCSV(item.currentStock || 0),
     escapeCSV(item.minStock || 0),
     escapeCSV(item.warehouseLocation || 'Gudang Utama'),
-    escapeCSV(item.lastPurchasePrice || 0),
+    escapeCSV(getPurchaseUnitPrice(item)),
+    escapeCSV(getAverageUnitCost(item)),
     escapeCSV(item.description || ''),
   ]);
 
@@ -138,7 +141,8 @@ export function downloadTemplateWarehouseItemsCSV() {
     'Stok Awal',
     'Stok Minimum',
     'Lokasi Rak',
-    'Harga Beli Satuan (Rp)',
+    'Harga Beli per Satuan Beli (Rp)',
+    'Harga Rata-rata per Satuan Dasar (Rp) - Opsional',
     'Deskripsi',
   ];
 
@@ -153,6 +157,7 @@ export function downloadTemplateWarehouseItemsCSV() {
       '240',
       '50',
       'Rak A-01',
+      '204000',
       '8500',
       'Kemasan kardus single wall',
     ],
@@ -166,6 +171,7 @@ export function downloadTemplateWarehouseItemsCSV() {
       '400',
       '100',
       'Gudang Kimia B-02',
+      '5500000',
       '27500',
       'Cairan pembersih solvent teknis',
     ],
@@ -179,6 +185,7 @@ export function downloadTemplateWarehouseItemsCSV() {
       '2500',
       '500',
       'Lemari ATK Lt 2',
+      '32500',
       '65',
       '1 Rim isi 500 lembar',
     ],
@@ -199,7 +206,7 @@ export function parseWarehouseItemsCSV(csvText: string): { items: Partial<Wareho
   }
 
   // Check header indices
-  const headerRow = (rows[0] || []).map((h) => (h || '').toLowerCase().trim());
+  const headerRow = (rows[0] || []).map((h) => (h || '').replace(/^\uFEFF/, '').toLowerCase().trim());
   const findIdx = (keywords: string[]) =>
     headerRow.findIndex((h) => keywords.some((k) => h.includes(k)));
 
@@ -212,7 +219,22 @@ export function parseWarehouseItemsCSV(csvText: string): { items: Partial<Wareho
   const stockIdx = findIdx(['stok', 'stock', 'qty']);
   const minStockIdx = findIdx(['minimum', 'min']);
   const locationIdx = findIdx(['lokasi', 'rak', 'location']);
-  const priceIdx = findIdx(['harga', 'price']);
+  const purchasePriceIdx = headerRow.findIndex((h) => !h.includes('satuan dasar') && !h.includes('perunit') && !h.includes('per unit') && [
+    'harga beli per satuan beli',
+    'harga per satuan beli',
+    'harga beli per kemasan',
+    'harga rata-rata',
+    'purchase unit price',
+  ].some((keyword) => h.includes(keyword)));
+  const basePriceIdx = findIdx([
+    'harga rata-rata per satuan dasar',
+    'harga per satuan dasar',
+    'harga perunit',
+    'harga per unit',
+    'harga beli satuan',
+    'harga beli terakhir',
+    'base unit price',
+  ]);
   const descIdx = findIdx(['deskripsi', 'keterangan', 'catatan', 'desc']);
 
   for (let i = 1; i < rows.length; i++) {
@@ -232,29 +254,39 @@ export function parseWarehouseItemsCSV(csvText: string): { items: Partial<Wareho
     
     let conversionRatio = 1;
     if (ratioIdx !== -1 && row[ratioIdx]) {
-      const parsedRatio = parseFloat(row[ratioIdx].replace(/[^\d.]/g, ''));
+      const parsedRatio = parseNumericCell(row[ratioIdx]);
       if (!isNaN(parsedRatio) && parsedRatio > 0) conversionRatio = parsedRatio;
     }
 
     let currentStock = 0;
     if (stockIdx !== -1 && row[stockIdx]) {
-      const parsedStock = parseFloat(row[stockIdx].replace(/[^\d.]/g, ''));
+      const parsedStock = parseNumericCell(row[stockIdx]);
       if (!isNaN(parsedStock)) currentStock = parsedStock;
     }
 
     let minStock = 10;
     if (minStockIdx !== -1 && row[minStockIdx]) {
-      const parsedMin = parseFloat(row[minStockIdx].replace(/[^\d.]/g, ''));
+      const parsedMin = parseNumericCell(row[minStockIdx]);
       if (!isNaN(parsedMin)) minStock = parsedMin;
     }
 
     const warehouseLocation = locationIdx !== -1 && row[locationIdx] ? row[locationIdx].trim() : 'Gudang Utama';
     
-    let lastPurchasePrice = 0;
-    if (priceIdx !== -1 && row[priceIdx]) {
-      const parsedPrice = parseFloat(row[priceIdx].replace(/[^\d.]/g, ''));
-      if (!isNaN(parsedPrice)) lastPurchasePrice = parsedPrice;
-    }
+    const purchasePrice = purchasePriceIdx !== -1 ? parseNumericCell(row[purchasePriceIdx]) : NaN;
+    const baseUnitPrice = basePriceIdx !== -1 ? parseNumericCell(row[basePriceIdx]) : NaN;
+    const hasPurchasePrice = Number.isFinite(purchasePrice) && purchasePrice >= 0;
+    const hasBasePrice = Number.isFinite(baseUnitPrice) && baseUnitPrice >= 0;
+    const lastPurchasePrice = hasPurchasePrice
+      ? purchasePrice
+      : hasBasePrice
+        ? baseUnitPrice
+        : 0;
+    const priceBasis = hasPurchasePrice ? 'purchase_unit' as const : 'base_unit' as const;
+    const averageUnitCost = hasBasePrice
+      ? baseUnitPrice
+      : hasPurchasePrice
+        ? purchasePrice / conversionRatio
+        : 0;
 
     const description = descIdx !== -1 && row[descIdx] ? row[descIdx].trim() : '';
 
@@ -269,11 +301,35 @@ export function parseWarehouseItemsCSV(csvText: string): { items: Partial<Wareho
       minStock,
       warehouseLocation,
       lastPurchasePrice,
+      priceBasis,
+      averageUnitCost,
       description,
     });
   }
 
   return { items, errors };
+}
+
+/** Parse Indonesian or international formatted numbers without turning 22.000 into 22. */
+function parseNumericCell(raw: string | undefined): number {
+  if (!raw) return NaN;
+  let value = raw.trim().replace(/\s/g, '').replace(/[^\d,.-]/g, '');
+  if (!value) return NaN;
+
+  const hasComma = value.includes(',');
+  const hasDot = value.includes('.');
+  if (hasComma && hasDot) {
+    const decimalSeparator = value.lastIndexOf(',') > value.lastIndexOf('.') ? ',' : '.';
+    const thousandsSeparator = decimalSeparator === ',' ? /\./g : /,/g;
+    value = value.replace(thousandsSeparator, '').replace(decimalSeparator, '.');
+  } else if (/^-?\d{1,3}(\.\d{3})+$/.test(value)) {
+    value = value.replace(/\./g, '');
+  } else if (/^-?\d{1,3}(,\d{3})+$/.test(value)) {
+    value = value.replace(/,/g, '');
+  } else {
+    value = value.replace(',', '.');
+  }
+  return Number(value);
 }
 
 /* =========================================================================

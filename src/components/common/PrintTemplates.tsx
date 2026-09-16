@@ -15,6 +15,7 @@ import {
   getPRStatusBadge,
   getPriorityBadge,
 } from '../../utils/formatters';
+import { getAverageUnitCost, getInventoryValue } from '../../utils/inventoryPricing';
 import {
   Printer,
   X,
@@ -760,7 +761,7 @@ export const ComprehensiveReportModal: React.FC<ComprehensiveReportModalProps> =
   );
 
   const totalAssetValue = filteredItems.reduce(
-    (sum, item) => sum + item.currentStock * item.lastPurchasePrice,
+    (sum, item) => sum + getInventoryValue(item),
     0
   );
   const totalPhysicalItems = filteredItems.reduce((sum, item) => sum + item.currentStock, 0);
@@ -949,7 +950,7 @@ export const ComprehensiveReportModal: React.FC<ComprehensiveReportModalProps> =
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {filteredItems.map((item, idx) => {
-                      const totalAsset = item.currentStock * item.lastPurchasePrice;
+                      const totalAsset = getInventoryValue(item);
                       const isLow = item.currentStock <= item.minStock && item.currentStock > 0;
                       const isOut = item.currentStock === 0;
 
@@ -971,7 +972,7 @@ export const ComprehensiveReportModal: React.FC<ComprehensiveReportModalProps> =
                               {isOut ? 'HABIS' : isLow ? 'KRITIS' : 'AMAN'}
                             </span>
                           </td>
-                          <td className="py-2 px-2.5 text-right font-mono text-slate-700">{formatRupiah(item.lastPurchasePrice)}</td>
+                          <td className="py-2 px-2.5 text-right font-mono text-slate-700">{formatRupiah(getAverageUnitCost(item))}</td>
                           <td className="py-2 px-2.5 text-right font-bold font-mono text-slate-900">{formatRupiah(totalAsset)}</td>
                         </tr>
                       );

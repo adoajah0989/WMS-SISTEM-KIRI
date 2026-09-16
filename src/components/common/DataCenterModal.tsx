@@ -27,6 +27,7 @@ import {
   exportGoodsReceiptsCSV,
   exportRequisitionsCSV,
 } from '../../utils/exportImport';
+import { getAverageUnitCost, getPurchaseUnitPrice } from '../../utils/inventoryPricing';
 import { WarehouseItem, Supplier } from '../../types';
 import { ComprehensiveReportModal } from './PrintTemplates';
 
@@ -494,7 +495,8 @@ export const DataCenterModal: React.FC<DataCenterModalProps> = ({
                           <th className="p-2 border-b">Satuan Beli</th>
                           <th className="p-2 border-b">Rasio Konversi</th>
                           <th className="p-2 border-b text-right">Stok Awal</th>
-                          <th className="p-2 border-b text-right">Harga Satuan</th>
+                          <th className="p-2 border-b text-right">Harga Beli/Kemasan</th>
+                          <th className="p-2 border-b text-right">HPP/Satuan Dasar</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-normal">
@@ -511,7 +513,12 @@ export const DataCenterModal: React.FC<DataCenterModalProps> = ({
                                 : '1 : 1'}
                             </td>
                             <td className="p-2 text-right font-mono">{item.currentStock || 0}</td>
-                            <td className="p-2 text-right font-mono">Rp {(item.lastPurchasePrice || 0).toLocaleString('id-ID')}</td>
+                            <td className="p-2 text-right font-mono">
+                              Rp {getPurchaseUnitPrice(item as WarehouseItem).toLocaleString('id-ID')}
+                            </td>
+                            <td className="p-2 text-right font-mono">
+                              Rp {getAverageUnitCost(item as WarehouseItem).toLocaleString('id-ID')}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

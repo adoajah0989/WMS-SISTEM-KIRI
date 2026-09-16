@@ -38,6 +38,12 @@ import { DataCenterModal } from '../common/DataCenterModal';
 import { ItemQRQuickModal } from '../rack/ItemQRQuickModal';
 import { ComprehensiveReportModal } from '../common/PrintTemplates';
 import { generateQRCodeDataUrl, generateRackQRPayload } from '../../utils/qrGenerator';
+import {
+  getAverageUnitCost,
+  getInventoryValue,
+  getPurchaseUnitPrice,
+  pricingFromPurchaseUnit,
+} from '../../utils/inventoryPricing';
 
 interface WarehouseViewProps {
   onOpenCreatePRForItem: (item: WarehouseItem) => void;
@@ -210,7 +216,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
     setFormInitialStock(item.currentStock);
     setFormMinStock(item.minStock);
     setFormLocation(item.warehouseLocation);
-    setFormPrice(item.lastPurchasePrice);
+    setFormPrice(getPurchaseUnitPrice(item));
     setFormSupplierId(item.primarySupplierId || '');
     setFormDescription(item.description || '');
     setIsAddItemModalOpen(true);
@@ -229,6 +235,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
       return;
     }
     const ratio = formConversionRatio > 0 ? formConversionRatio : 1;
+    const pricing = pricingFromPurchaseUnit(formPrice, ratio);
 
     if (editingItem) {
       updateItem(editingItem.id, {
@@ -240,7 +247,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
         conversionRatio: ratio,
         minStock: formMinStock,
         warehouseLocation: formLocation,
-        lastPurchasePrice: formPrice,
+        ...pricing,
         primarySupplierId: formSupplierId,
         description: formDescription,
       });
@@ -255,7 +262,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
         currentStock: formInitialStock,
         minStock: formMinStock,
         warehouseLocation: formLocation,
-        lastPurchasePrice: formPrice,
+        ...pricing,
         primarySupplierId: formSupplierId || undefined,
         description: formDescription || undefined,
       });
@@ -555,7 +562,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                 <th className="py-3 px-4 font-semibold text-center">Stok Saat Ini</th>
                 <th className="py-3 px-4 font-semibold text-center">Min. Safety</th>
                 <th className="py-3 px-4 font-semibold">Lokasi Gudang / Rak</th>
-                <th className="py-3 px-4 font-semibold text-right">Harga Beli Terakhir</th>
+                <th className="py-3 px-4 font-semibold text-right">HPP / Satuan Dasar</th>
                 <th className="py-3 px-4 font-semibold text-right">Nilai Total Stok</th>
                 <th className="py-3 px-4 font-semibold text-right">Aksi Cepat</th>
               </tr>
@@ -572,7 +579,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                 filteredItems.map((item) => {
                   const isLow = item.currentStock <= item.minStock && item.currentStock > 0;
                   const isOut = item.currentStock === 0;
-                  const totalAsset = item.currentStock * item.lastPurchasePrice;
+                  const totalAsset = getInventoryValue(item);
 
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition group">
@@ -641,7 +648,10 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                       </td>
 
                       <td className="py-3 px-4 text-right text-slate-700 font-medium">
-                        {formatRupiah(item.lastPurchasePrice)}
+                        <span className="block">{formatRupiah(getAverageUnitCost(item))}</span>
+                        <span className="block text-[9px] text-slate-400 font-normal">
+                          Beli {formatRupiah(getPurchaseUnitPrice(item))}/{item.purchaseUnit || item.unit}
+                        </span>
                       </td>
 
                       <td className="py-3 px-4 text-right font-bold text-slate-900">
@@ -745,7 +755,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
           filteredItems.map((item) => {
             const isLow = item.currentStock <= item.minStock && item.currentStock > 0;
             const isOut = item.currentStock === 0;
-            const totalAsset = item.currentStock * item.lastPurchasePrice;
+            const totalAsset = getInventoryValue(item);
 
             return (
               <div
@@ -807,9 +817,12 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                   </div>
 
                   <div>
-                    <span className="text-slate-400 text-[10px] block">Harga Beli:</span>
+                    <span className="text-slate-400 text-[10px] block">HPP / {item.unit}:</span>
                     <span className="font-semibold text-slate-800">
-                      {formatRupiah(item.lastPurchasePrice)}
+                      {formatRupiah(getAverageUnitCost(item))}
+                    </span>
+                    <span className="text-[9px] text-slate-400 block">
+                      Beli {formatRupiah(getPurchaseUnitPrice(item))}/{item.purchaseUnit || item.unit}
                     </span>
                   </div>
                 </div>
@@ -1046,7 +1059,9 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Harga Beli Terakhir (Rp) *</label>
+                      <label className="block font-semibold text-slate-700 mb-1">
+                        Harga Beli per {formPurchaseUnit || 'Satuan Beli'} (Rp) *
+                      </label>
                       <NumberInput
                         type="number"
                         min="0"
@@ -1055,6 +1070,10 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                         onChange={(e) => setFormPrice(parseFloat(e.target.value) || 0)}
                         className="w-full border border-slate-300 rounded-lg p-2.5 text-xs"
                       />
+                      <p className="mt-1 text-[10px] text-slate-500">
+                        HPP otomatis: <strong>{formatRupiah(formPrice / (formConversionRatio > 0 ? formConversionRatio : 1))}</strong>
+                        {' '}per {formUnit || 'satuan dasar'}. Nilai stok memakai HPP ini, bukan harga kemasan.
+                      </p>
                     </div>
                   </div>
 
