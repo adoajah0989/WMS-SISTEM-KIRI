@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Database, FileText, LayoutDashboard, MoreHorizontal, QrCode, ShoppingCart, Truck, X } from 'lucide-react';
+import { ArrowRightLeft, Building2, ClipboardCheck, Database, FileText, LayoutDashboard, MoreHorizontal, QrCode, ShoppingCart, Truck, X } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { ActiveTab } from '../../types';
 import { useAuth } from '../auth/AuthContext';
@@ -28,6 +28,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenScanQR }) => {
         <div className="grid grid-cols-2 gap-2">
           {ROLE_TABS[profile.role].includes('goods_receipts') && <button onClick={() => go('goods_receipts')} className="flex min-h-16 items-center gap-3 rounded-2xl border border-[#e2e0da] bg-white px-4 text-left text-sm font-semibold text-[#333]"><span className="rounded-xl bg-[#eaf2ff] p-2 text-[#3974d9]"><Truck className="h-5 w-5" /></span>Penerimaan</button>}
           {ROLE_TABS[profile.role].includes('suppliers') && <button onClick={() => go('suppliers')} className="flex min-h-16 items-center gap-3 rounded-2xl border border-[#e2e0da] bg-white px-4 text-left text-sm font-semibold text-[#333]"><span className="rounded-xl bg-[#f1eaff] p-2 text-[#8158bd]"><Building2 className="h-5 w-5" /></span>Supplier</button>}
+          {ROLE_TABS[profile.role].includes('stock_opname') && <button onClick={() => go('stock_opname')} className="flex min-h-16 items-center gap-3 rounded-2xl border border-[#e2e0da] bg-white px-4 text-left text-sm font-semibold text-[#333]"><span className="rounded-xl bg-[#e8f7e4] p-2 text-[#397c31]"><ClipboardCheck className="h-5 w-5" /></span>Stock Opname</button>}
+          {ROLE_TABS[profile.role].includes('store_transfers') && <button onClick={() => go('store_transfers')} className="flex min-h-16 items-center gap-3 rounded-2xl border border-[#e2e0da] bg-white px-4 text-left text-sm font-semibold text-[#333]"><span className="rounded-xl bg-[#fff2d8] p-2 text-[#9a6819]"><ArrowRightLeft className="h-5 w-5" /></span>Transfer Store</button>}
           {onOpenScanQR && canScanWarehouse(profile.role) && <button onClick={() => { setMoreOpen(false); onOpenScanQR(); }} className="col-span-2 flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#252525] text-sm font-semibold text-white"><QrCode className="h-5 w-5 text-[#82dd70]" /> Pindai QR rak gudang</button>}
         </div>
       </section>
