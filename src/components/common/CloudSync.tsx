@@ -3,7 +3,7 @@ import { usePurchasing } from '../../context/PurchasingContext';
 import { saveCloudSnapshot, STORAGE_KEYS } from '../../services/cloudPersistence';
 
 export const CloudSync: React.FC = () => {
-  const { items, suppliers, requisitions, purchaseOrders, goodsReceipts, stockMovements } = usePurchasing();
+  const { items, suppliers, requisitions, purchaseOrders, goodsReceipts, stockMovements, stockOpnames, storeTransfers, warehouses, inventoryCategories } = usePurchasing();
   const firstRender = useRef(true);
   const [syncError, setSyncError] = useState('');
 
@@ -22,6 +22,10 @@ export const CloudSync: React.FC = () => {
           [STORAGE_KEYS.POS]: purchaseOrders,
           [STORAGE_KEYS.GRNS]: goodsReceipts,
           [STORAGE_KEYS.MOVEMENTS]: stockMovements,
+          [STORAGE_KEYS.OPNAMES]: stockOpnames,
+          [STORAGE_KEYS.TRANSFERS]: storeTransfers,
+          [STORAGE_KEYS.WAREHOUSES]: warehouses,
+          [STORAGE_KEYS.CATEGORIES]: inventoryCategories,
         });
         setSyncError('');
       } catch (error) {
@@ -31,7 +35,7 @@ export const CloudSync: React.FC = () => {
     }, 700);
 
     return () => window.clearTimeout(timer);
-  }, [items, suppliers, requisitions, purchaseOrders, goodsReceipts, stockMovements]);
+  }, [items, suppliers, requisitions, purchaseOrders, goodsReceipts, stockMovements, stockOpnames, storeTransfers, warehouses, inventoryCategories]);
 
   if (!syncError) return null;
 
