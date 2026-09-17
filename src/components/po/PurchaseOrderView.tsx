@@ -86,6 +86,8 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
   const approvedPRs = requisitions.filter((pr) => pr.status === 'disetujui' && pr.pricingStatus === 'harga_diterima');
   const [sourceMode, setSourceMode] = useState<'pr' | 'direct'>('pr');
   const [sourcePRId, setSourcePRId] = useState('');
+  const [itemSearchQueries, setItemSearchQueries] = useState<Record<string, string>>({});
+  const [activeItemSearchId, setActiveItemSearchId] = useState<string | null>(null);
 
   const [formItems, setFormItems] = useState<POItem[]>([
     {
@@ -790,24 +792,6 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                         )}
                       </div>
 
-                      {/* If Warehouse Items exist, offer 1-click select */}
-                      {!prefilledPR && warehouseItems.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-slate-500 whitespace-nowrap">Stok Gudang:</span>
-                          <select
-                            onChange={(e) => handleSelectWarehouseItem(index, e.target.value)}
-                            className="text-xs border border-slate-200 rounded px-2 py-1 bg-slate-50 text-slate-700 flex-1 truncate"
-                          >
-                            <option value="">-- Pilih dari stok atau ketik manual --</option>
-                            {warehouseItems.map((w) => (
-                              <option key={w.id} value={w.id}>
-                                [{w.sku}] {w.name} (Stok: {w.currentStock} {w.unit})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
                       {/* Main Item Fields */}
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                         {/* Item Name */}
@@ -815,14 +799,48 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                           <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
                             Nama Barang *
                           </label>
-                          {prefilledPR ? <div className="min-h-9 rounded-lg border border-[#e2e0da] bg-[#faf9f6] px-3 py-2 text-xs font-semibold text-[#333]"><span className="mr-1 font-mono text-[9px] text-[#8b8a84]">{item.sku}</span>{item.itemName}</div> : <input
-                              type="text"
-                              required
-                              placeholder="Nama item"
-                              value={item.itemName}
-                              onChange={(e) => handleUpdateItemField(index, 'itemName', e.target.value)}
-                              className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-medium"
-                            />}
+                          {prefilledPR ? <div className="min-h-9 rounded-lg border border-[#e2e0da] bg-[#faf9f6] px-3 py-2 text-xs font-semibold text-[#333]"><span className="mr-1 font-mono text-[9px] text-[#8b8a84]">{item.sku}</span>{item.itemName}</div> : <div className="relative">
+                            <div className="relative">
+                              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                              <input
+                                type="text"
+                                required
+                                placeholder="Ketik nama atau SKU..."
+                                value={itemSearchQueries[item.id] ?? item.itemName}
+                                onFocus={() => setActiveItemSearchId(item.id)}
+                                onBlur={() => window.setTimeout(() => setActiveItemSearchId((current) => current === item.id ? null : current), 160)}
+                                onChange={(event) => {
+                                  const value = event.target.value;
+                                  setItemSearchQueries((current) => ({ ...current, [item.id]: value }));
+                                  setActiveItemSearchId(item.id);
+                                  handleUpdateItemField(index, 'itemName', value);
+                                  if (item.itemId) handleUpdateItemField(index, 'itemId', undefined);
+                                }}
+                                className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                              />
+                            </div>
+                            {activeItemSearchId === item.id && (itemSearchQueries[item.id] ?? item.itemName).trim() && (
+                              <div className="motion-pop absolute inset-x-0 top-full z-30 mt-1 max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                                {warehouseItems.filter((warehouseItem) => {
+                                  const query = (itemSearchQueries[item.id] ?? item.itemName).trim().toLowerCase();
+                                  return warehouseItem.name.toLowerCase().includes(query) || warehouseItem.sku.toLowerCase().includes(query);
+                                }).slice(0, 6).map((warehouseItem) => (
+                                  <button key={warehouseItem.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => {
+                                    handleSelectWarehouseItem(index, warehouseItem.id);
+                                    setItemSearchQueries((current) => ({ ...current, [item.id]: warehouseItem.name }));
+                                    setActiveItemSearchId(null);
+                                  }} className="flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left hover:bg-indigo-50">
+                                    <span className="min-w-0"><strong className="block truncate text-[11px] text-slate-800">{warehouseItem.name}</strong><span className="block truncate text-[9px] text-slate-500">{warehouseItem.sku} · {warehouseItem.category}</span></span>
+                                    <span className="shrink-0 text-[9px] font-semibold text-indigo-700">{warehouseItem.currentStock} {warehouseItem.unit}</span>
+                                  </button>
+                                ))}
+                                {warehouseItems.filter((warehouseItem) => {
+                                  const query = (itemSearchQueries[item.id] ?? item.itemName).trim().toLowerCase();
+                                  return warehouseItem.name.toLowerCase().includes(query) || warehouseItem.sku.toLowerCase().includes(query);
+                                }).length === 0 && <div className="px-3 py-4 text-center text-[10px] text-slate-500">Tidak ada barang yang cocok. Nama tetap dapat diketik manual.</div>}
+                              </div>
+                            )}
+                          </div>}
                         </div>
 
                         {/* Quantity */}

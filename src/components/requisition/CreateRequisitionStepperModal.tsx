@@ -109,6 +109,8 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   const [expandedItemIds, setExpandedItemIds] = useState<string[]>([]);
   const [isStockListLoading, setIsStockListLoading] = useState(true);
   const [activeItemHintId, setActiveItemHintId] = useState<string | null>(null);
+  const [catalogQueries, setCatalogQueries] = useState<Record<string, string>>({});
+  const [activeCatalogItemId, setActiveCatalogItemId] = useState<string | null>(null);
 
   const toggleItemDetails = (itemKey: string) => {
     setExpandedItemIds((current) => current.includes(itemKey)
@@ -1019,12 +1021,47 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                       </div>
 
                       {isExpanded && <div className="motion-pop mt-2 space-y-2.5 border-t border-[#eceae5] pt-2.5">
-                        <div>
-                          <label className="mb-1 block text-[10px] font-semibold text-[#666]">Pilih dari stok gudang</label>
-                          <select value={item.itemId || ''} onChange={(e) => handleSelectWarehouseStock(index, e.target.value)} className="h-10 w-full rounded-lg border border-[#d8d6cf] bg-[#faf9f6] px-3 text-xs font-medium text-[#444]">
-                            <option value="">Ketik manual / pilih katalog stok</option>
-                            {warehouseItems.map((warehouseItem) => <option key={warehouseItem.id} value={warehouseItem.id}>[{warehouseItem.sku}] {warehouseItem.name} · stok {warehouseItem.currentStock} {warehouseItem.unit}</option>)}
-                          </select>
+                        <div className="relative">
+                          <label className="mb-1 block text-[10px] font-semibold text-[#666]">Cari barang dari stok</label>
+                          <div className="relative">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#999892]" />
+                            <input
+                              value={catalogQueries[itemKey] || ''}
+                              onFocus={() => setActiveCatalogItemId(itemKey)}
+                              onBlur={() => window.setTimeout(() => setActiveCatalogItemId((current) => current === itemKey ? null : current), 160)}
+                              onChange={(event) => {
+                                const query = event.target.value;
+                                setCatalogQueries((current) => ({ ...current, [itemKey]: query }));
+                                setActiveCatalogItemId(itemKey);
+                              }}
+                              placeholder="Ketik nama atau SKU..."
+                              className="h-10 w-full rounded-lg border border-[#d8d6cf] bg-white pl-9 pr-3 text-xs font-medium text-[#444]"
+                            />
+                          </div>
+                          {activeCatalogItemId === itemKey && (catalogQueries[itemKey] || '').trim() && (
+                            <div className="motion-pop absolute inset-x-0 top-full z-30 mt-1 max-h-52 overflow-y-auto rounded-xl border border-[#dedcd5] bg-white p-1.5 shadow-xl">
+                              {warehouseItems
+                                .filter((warehouseItem) => {
+                                  const query = (catalogQueries[itemKey] || '').trim().toLowerCase();
+                                  return warehouseItem.name.toLowerCase().includes(query) || warehouseItem.sku.toLowerCase().includes(query);
+                                })
+                                .slice(0, 6)
+                                .map((warehouseItem) => (
+                                  <button key={warehouseItem.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => {
+                                    handleSelectWarehouseStock(index, warehouseItem.id);
+                                    setCatalogQueries((current) => ({ ...current, [itemKey]: warehouseItem.name }));
+                                    setActiveCatalogItemId(null);
+                                  }} className="flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left hover:bg-[#f3f8f1]">
+                                    <span className="min-w-0"><strong className="block truncate text-[11px] text-[#333]">{warehouseItem.name}</strong><span className="block truncate text-[9px] text-[#85847e]">{warehouseItem.sku} · {warehouseItem.category}</span></span>
+                                    <span className="shrink-0 text-[9px] font-semibold text-[#397c31]">{warehouseItem.currentStock} {warehouseItem.unit}</span>
+                                  </button>
+                                ))}
+                              {warehouseItems.filter((warehouseItem) => {
+                                const query = (catalogQueries[itemKey] || '').trim().toLowerCase();
+                                return warehouseItem.name.toLowerCase().includes(query) || warehouseItem.sku.toLowerCase().includes(query);
+                              }).length === 0 && <div className="px-3 py-4 text-center text-[10px] text-[#85847e]">Tidak ada barang yang cocok.</div>}
+                            </div>
+                          )}
                         </div>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                           <div><label className="mb-1 block text-[10px] font-semibold text-[#444]">Nama barang *</label><input type="text" required value={item.itemName} onChange={(e) => handleUpdateItem(index, 'itemName', e.target.value)} placeholder="Nama barang" className="h-10 w-full rounded-lg border border-[#d8d6cf] bg-white px-3 text-xs font-semibold text-[#292929]" /></div>
