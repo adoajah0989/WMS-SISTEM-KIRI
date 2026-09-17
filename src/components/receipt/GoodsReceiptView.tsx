@@ -17,6 +17,8 @@ import {
   ArrowRight,
   Download,
   Repeat,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { GoodsReceipt, GRNItem, PurchaseOrder, StockCondition } from '../../types';
@@ -61,6 +63,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const [formReceiveDate, setFormReceiveDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [formNotes, setFormNotes] = useState('');
   const [formItems, setFormItems] = useState<GRNItem[]>([]);
+  const [receiptDetailsOpen, setReceiptDetailsOpen] = useState(false);
 
   // Eligible POs (POs not yet finished and not cancelled)
   const eligiblePOs = purchaseOrders.filter(
@@ -107,6 +110,10 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     });
 
     setFormItems(itemsForGRN);
+  };
+
+  const handleReceiveAllRemaining = () => {
+    setFormItems((current) => current.map((item) => ({ ...item, receivedQuantity: item.remainingQuantity, condition: 'baik', notes: '' })));
   };
 
   // Synchronize when preselectedPO passed from other views
@@ -159,6 +166,9 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
 
     setIsCreateModalOpen(false);
     setPreselectedPO(null);
+    setFormPoId('');
+    setFormItems([]);
+    setReceiptDetailsOpen(false);
     setFormDeliveryOrderNo('');
     setFormNotes('');
   };
@@ -413,10 +423,10 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       {/* Modal: Input Penerimaan Barang (GRN) */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full my-6 overflow-hidden flex flex-col max-h-[92vh] border border-slate-100">
-            <div className="bg-slate-900 text-white px-5 sm:px-6 py-3.5 flex items-center justify-between">
+          <div className="bg-[#f8f7f4] rounded-[24px] shadow-xl max-w-3xl w-full my-6 overflow-hidden flex flex-col max-h-[94vh] border border-white/60">
+            <div className="bg-white text-[#292929] px-5 sm:px-6 py-3.5 flex items-center justify-between border-b border-[#e7e5e0]">
               <div className="flex items-center gap-2">
-                <Truck className="w-5 h-5 text-teal-400" />
+                <Truck className="w-5 h-5 text-[#397c31]" />
                 <h3 className="font-bold text-sm sm:text-base">Input Penerimaan Barang (GRN)</h3>
               </div>
               <button
@@ -424,13 +434,13 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                   setIsCreateModalOpen(false);
                   setPreselectedPO(null);
                 }}
-                className="text-slate-400 hover:text-white p-1 rounded-lg text-lg font-bold"
+                className="text-[#85847e] hover:text-[#222] p-1 rounded-lg text-lg font-bold"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSubmitGRN} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+            <form onSubmit={handleSubmitGRN} className="p-4 sm:p-6 pb-28 space-y-4 overflow-y-auto">
               {/* Select Target PO */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -468,7 +478,8 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               </div>
 
               {/* Receiver & Location Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button type="button" onClick={() => setReceiptDetailsOpen((value) => !value)} className="flex min-h-11 w-full items-center justify-between rounded-xl border border-[#dfddd7] bg-white px-3 text-left text-xs font-semibold text-[#555]"><span>Detail penerimaan <span className="font-normal text-[#92918b]">· tanggal, petugas, lokasi</span></span>{receiptDetailsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button>
+              {receiptDetailsOpen && <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-[#e4e2dc] bg-white p-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Tgl Diterima *
@@ -508,7 +519,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                     className="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
                   />
                 </div>
-              </div>
+              </div>}
 
               {/* Items Verification Table */}
               <div className="border-t border-slate-200/80 pt-3.5 space-y-3">
@@ -516,6 +527,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                   <span className="font-bold text-xs text-slate-800 uppercase tracking-wider">
                     Pemeriksaan Barang PO ({formItems.length} Item)
                   </span>
+                  {!!formItems.length && <button type="button" onClick={handleReceiveAllRemaining} className="min-h-9 rounded-xl bg-[#e8f7e4] px-3 text-[11px] font-semibold text-[#397c31]">Terima semua sesuai PO</button>}
                 </div>
 
                 {formItems.length === 0 ? (
@@ -541,7 +553,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                         </div>
 
                         {/* Input Row */}
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
                             <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                               Qty Diterima ({item.unit}) *
@@ -587,7 +599,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                             </select>
                           </div>
 
-                          <div>
+                          {item.condition !== 'baik' && <div>
                             <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                               Lokasi Rak
                             </label>
@@ -600,9 +612,9 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                               placeholder="Rak A-01"
                               className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
                             />
-                          </div>
+                          </div>}
 
-                          <div>
+                          {item.condition !== 'baik' && <div>
                             <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                               Catatan
                             </label>
@@ -613,7 +625,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                               placeholder="Catatan fisik..."
                               className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
                             />
-                          </div>
+                          </div>}
                         </div>
 
                         {/* Unit Conversion Live Calculation */}
@@ -643,7 +655,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+              <div className="sticky -bottom-6 z-10 -mx-4 flex items-center justify-end gap-2.5 border-t border-[#e3e1da] bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(35,35,30,.08)] backdrop-blur-lg sm:-mx-6 sm:px-6">
                 <button
                   type="button"
                   onClick={() => {

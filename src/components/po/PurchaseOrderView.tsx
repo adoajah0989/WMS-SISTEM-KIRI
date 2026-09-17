@@ -83,6 +83,9 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
 
   // Collapsible toggle for advanced optional settings
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const approvedPRs = requisitions.filter((pr) => pr.status === 'disetujui');
+  const [sourceMode, setSourceMode] = useState<'pr' | 'direct'>('pr');
+  const [sourcePRId, setSourcePRId] = useState('');
 
   const [formItems, setFormItems] = useState<POItem[]>([
     {
@@ -110,23 +113,38 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
   // Effect to load prefilled PR when modal opens via "Terbitkan PO"
   React.useEffect(() => {
     if (prefilledPR && isCreateModalOpen) {
-      const itemsMapped: POItem[] = prefilledPR.items.map((item, idx) => ({
-        id: `poi-${Date.now()}-${idx}`,
-        itemId: item.itemId,
-        sku: item.sku || `ITEM-${idx + 1}`,
-        itemName: item.itemName,
-        unit: item.unit || 'Pcs',
-        quantity: item.quantity,
-        unitPrice: item.estimatedUnitPrice || 0,
-        discountPercent: 0,
-        subtotal: item.quantity * (item.estimatedUnitPrice || 0),
-        receivedQuantity: 0,
-      }));
+      const itemsMapped: POItem[] = prefilledPR.items.map((item, idx) => {
+        const stockItem = warehouseItems.find((candidate) => candidate.id === item.itemId || candidate.sku === item.sku);
+        const unit = item.unit || stockItem?.purchaseUnit || stockItem?.unit || 'Pcs';
+        return {
+          id: `poi-${Date.now()}-${idx}`,
+          itemId: item.itemId || stockItem?.id,
+          sku: item.sku || stockItem?.sku || `ITEM-${idx + 1}`,
+          itemName: item.itemName,
+          unit,
+          purchaseUnit: unit,
+          stockUnit: item.stockUnit || stockItem?.unit || unit,
+          conversionRatio: item.conversionRatio || stockItem?.conversionRatio || 1,
+          quantity: item.quantity,
+          unitPrice: item.estimatedUnitPrice || stockItem?.lastPurchasePrice || 0,
+          discountPercent: 0,
+          subtotal: item.quantity * (item.estimatedUnitPrice || stockItem?.lastPurchasePrice || 0),
+          receivedQuantity: 0,
+        };
+      });
       setFormItems(itemsMapped);
+      setSourceMode('pr');
+      setSourcePRId(prefilledPR.id);
       setFormExpectedDate(prefilledPR.requiredDate);
       setFormNotes(`Diterbitkan atas dasar pengajuan ${prefilledPR.prNumber} (${prefilledPR.department}). Keperluan: ${prefilledPR.purpose}`);
     }
   }, [prefilledPR, isCreateModalOpen]);
+
+  const handleSelectSourcePR = (prId: string) => {
+    setSourcePRId(prId);
+    const selected = approvedPRs.find((pr) => pr.id === prId) || null;
+    setPrefilledPR(selected);
+  };
 
   // Calculations
   const calculatedSubtotal = formItems.reduce((acc, curr) => acc + (curr.subtotal || 0), 0);
@@ -216,6 +234,11 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
   const handleSubmitPO = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (sourceMode === 'pr' && !prefilledPR) {
+      alert('Pilih PR yang sudah disetujui sebagai sumber PO. Gunakan PO langsung hanya untuk kebutuhan tanpa PR.');
+      return;
+    }
+
     let targetSupplier = suppliers.find((s) => s.id === formSupplierId);
 
     // If custom supplier name typed or no suppliers exist
@@ -277,6 +300,8 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
 
     setIsCreateModalOpen(false);
     setPrefilledPR(null);
+    setSourcePRId('');
+    setSourceMode('pr');
     // Reset basic item list for next open
     setFormItems([
       {
@@ -634,6 +659,25 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
             </div>
 
             <form onSubmit={handleSubmitPO} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+              <section className="rounded-2xl border border-[#dfddd7] bg-[#faf9f6] p-3 sm:p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div><p className="text-xs font-bold text-[#333]">Sumber purchase order</p><p className="mt-0.5 text-[10px] text-[#85847e]">Gunakan PR agar barang dan qty terisi otomatis.</p></div>
+                  <div className="flex rounded-xl border border-[#dfddd7] bg-white p-1">
+                    <button type="button" onClick={() => setSourceMode('pr')} className={`min-h-9 rounded-lg px-3 text-[11px] font-semibold ${sourceMode === 'pr' ? 'bg-[#252525] text-white' : 'text-[#666]'}`}>Dari PR</button>
+                    <button type="button" onClick={() => { setSourceMode('direct'); setPrefilledPR(null); setSourcePRId(''); }} className={`min-h-9 rounded-lg px-3 text-[11px] font-semibold ${sourceMode === 'direct' ? 'bg-[#252525] text-white' : 'text-[#666]'}`}>PO langsung</button>
+                  </div>
+                </div>
+
+                {sourceMode === 'pr' && <div className="mt-3">
+                  {approvedPRs.length ? <select value={sourcePRId} onChange={(event) => handleSelectSourcePR(event.target.value)} className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs font-semibold text-[#444] outline-none focus:border-[#76ca67]">
+                    <option value="">Pilih PR yang sudah disetujui...</option>
+                    {approvedPRs.map((pr) => <option key={pr.id} value={pr.id}>{pr.prNumber} · {pr.department} · {pr.items.length} barang · {formatRupiah(pr.totalEstimatedAmount)}</option>)}
+                  </select> : <div className="rounded-xl bg-[#fff2d8] p-3 text-xs text-[#8c6417]">Belum ada PR berstatus disetujui. Selesaikan approval atau gunakan PO langsung.</div>}
+                  {prefilledPR && <div className="mt-2 flex items-center justify-between rounded-xl bg-[#e8f7e4] px-3 py-2.5 text-[11px] text-[#356d2f]"><span><strong>{prefilledPR.items.length} barang</strong> sudah dimuat otomatis</span><span>{prefilledPR.prNumber}</span></div>}
+                </div>}
+                {sourceMode === 'direct' && <div className="mt-3 rounded-xl bg-[#eaf1ff] p-3 text-[11px] leading-relaxed text-[#315f9d]">Mode ini tetap tersedia untuk pembelian khusus tanpa PR. Pilih barang dari master gudang agar satuan, rasio, dan harga terakhir terisi otomatis.</div>}
+              </section>
+
               {/* SECTION 1: Supplier & Tanggal Kirim */}
               <div className="bg-slate-50/80 p-3 sm:p-4 rounded-xl border border-slate-200/80 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -715,14 +759,14 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                     <Package className="w-4 h-4 text-indigo-600" />
                     <span>2. Daftar Barang ({formItems.length})</span>
                   </div>
-                  <button
+                  {sourceMode === 'direct' && <button
                     type="button"
                     onClick={handleAddItemRow}
                     className="px-2.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1 transition"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>+ Tambah Item</span>
-                  </button>
+                  </button>}
                 </div>
 
                 <div className="space-y-2.5">
@@ -746,7 +790,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                       </div>
 
                       {/* If Warehouse Items exist, offer 1-click select */}
-                      {warehouseItems.length > 0 && (
+                      {!prefilledPR && warehouseItems.length > 0 && (
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] text-slate-500 whitespace-nowrap">Stok Gudang:</span>
                           <select
@@ -770,14 +814,14 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                           <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
                             Nama Barang *
                           </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Nama item"
-                            value={item.itemName}
-                            onChange={(e) => handleUpdateItemField(index, 'itemName', e.target.value)}
-                            className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-medium"
-                          />
+                          {prefilledPR ? <div className="min-h-9 rounded-lg border border-[#e2e0da] bg-[#faf9f6] px-3 py-2 text-xs font-semibold text-[#333]"><span className="mr-1 font-mono text-[9px] text-[#8b8a84]">{item.sku}</span>{item.itemName}</div> : <input
+                              type="text"
+                              required
+                              placeholder="Nama item"
+                              value={item.itemName}
+                              onChange={(e) => handleUpdateItemField(index, 'itemName', e.target.value)}
+                              className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-medium"
+                            />}
                         </div>
 
                         {/* Quantity */}
@@ -981,7 +1025,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+              <div className="sticky -bottom-6 z-10 -mx-4 flex items-center justify-end gap-2.5 border-t border-[#e3e1da] bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(35,35,30,.08)] backdrop-blur-lg sm:-mx-6 sm:px-6">
                 <button
                   type="button"
                   onClick={() => {

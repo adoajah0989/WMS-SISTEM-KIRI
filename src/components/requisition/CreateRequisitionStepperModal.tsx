@@ -29,6 +29,7 @@ import {
 import { usePurchasing } from '../../context/PurchasingContext';
 import { PRItem, PriorityLevel, WarehouseItem, PRStatus } from '../../types';
 import { formatRupiah, formatDate } from '../../utils/formatters';
+import { useAuth } from '../auth/AuthContext';
 
 interface CreateRequisitionStepperModalProps {
   isOpen: boolean;
@@ -66,8 +67,9 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   onSuccess,
 }) => {
   const { items: warehouseItems, createPR } = usePurchasing();
+  const { profile } = useAuth();
 
-  // Wizard Step: 1 = Detail, 2 = Barang, 3 = Tinjau
+  // Wizard Step: 1 = Barang, 2 = Detail, 3 = Tinjau
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [confirmedAgreement, setConfirmedAgreement] = useState(true);
@@ -75,7 +77,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
 
   // Form Fields - Step 1: Detail
   const [department, setDepartment] = useState('Gudang & Logistik');
-  const [requestorName, setRequestorName] = useState('');
+  const [requestorName, setRequestorName] = useState(profile.fullName || profile.email || '');
   const [requiredDate, setRequiredDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -196,14 +198,14 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
 
   // Step Navigation Handlers
   const handleNextToStep2 = () => {
-    if (validateStep1()) {
+    if (validateStep2()) {
       setCurrentStep(2);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleNextToStep3 = () => {
-    if (validateStep2()) {
+    if (validateStep1()) {
       setCurrentStep(3);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -310,6 +312,9 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
       }));
       return [...populated, ...additions];
     });
+    if (!purpose.trim()) {
+      setPurpose('Restok barang kosong dan menipis berdasarkan kontrol stok gudang');
+    }
     setValidationError(null);
     setSelectedStockIds([]);
     setStockPickerOpen(false);
@@ -382,7 +387,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
 
   // Reset form
   const handleResetForm = () => {
-    setRequestorName('');
+    setRequestorName(profile.fullName || profile.email || '');
     setDepartment('Gudang & Logistik');
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -438,6 +443,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
       status,
     });
 
+    handleResetForm();
     onClose();
     if (onSuccess) onSuccess();
   };
@@ -530,7 +536,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         {/* STEPPER PROGRESS BAR (Matching 1 - 2 - 3 design) */}
         <div className="bg-white border-b border-[#eceae5] px-6 py-3.5 shrink-0">
           <div className="flex items-center justify-between max-w-sm mx-auto">
-            {/* Step 1: Detail */}
+            {/* Step 1: Barang */}
             <button
               onClick={() => setCurrentStep(1)}
               className="flex flex-col items-center group cursor-pointer"
@@ -553,7 +559,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                     : 'text-slate-500'
                 }`}
               >
-                Detail
+                Barang
               </span>
             </button>
 
@@ -564,10 +570,10 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               }`}
             />
 
-            {/* Step 2: Barang */}
+            {/* Step 2: Detail */}
             <button
               onClick={() => {
-                if (validateStep1()) setCurrentStep(2);
+                if (validateStep2()) setCurrentStep(2);
               }}
               className="flex flex-col items-center group cursor-pointer"
             >
@@ -589,7 +595,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                     : 'text-slate-500'
                 }`}
               >
-                Barang
+                Detail
               </span>
             </button>
 
@@ -649,7 +655,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           {/* ======================================================== */}
           {/* STEP 1: DETAIL (INFORMASI PERMINTAAN)                    */}
           {/* ======================================================== */}
-          {currentStep === 1 && (
+          {currentStep === 2 && (
             <div className="space-y-4 animate-in fade-in duration-150">
               {/* Section Header with Green Info Icon */}
               <div className="flex items-center gap-2.5 pb-1">
@@ -825,7 +831,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           {/* ======================================================== */}
           {/* STEP 2: BARANG (DAFTAR BARANG & KEBUTUHAN)                */}
           {/* ======================================================== */}
-          {currentStep === 2 && (
+          {currentStep === 1 && (
             <div className="space-y-4 animate-in fade-in duration-150">
               {/* Section Header */}
               <div className="flex items-center justify-between pb-1">
@@ -1142,7 +1148,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                   </span>
                   <button
                     type="button"
-                    onClick={() => setCurrentStep(1)}
+                    onClick={() => setCurrentStep(2)}
                     className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline"
                   >
                     Edit Detail
@@ -1198,7 +1204,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                   </span>
                   <button
                     type="button"
-                    onClick={() => setCurrentStep(2)}
+                    onClick={() => setCurrentStep(1)}
                     className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline"
                   >
                     Edit Barang
@@ -1282,7 +1288,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 onClick={handleNextToStep2}
                 className="flex-[1.4] py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99]"
               >
-                <span>Lanjut ke Barang</span>
+                <span>Lanjut ke Detail</span>
                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
               </button>
             </>
