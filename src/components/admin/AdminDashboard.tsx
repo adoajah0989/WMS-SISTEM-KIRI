@@ -1,186 +1,97 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Activity, ArrowLeft, Database, Download, LogOut, Plus, RefreshCw, Settings2, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { Activity, ArrowLeft, Database, Download, LogOut, MapPin, Package, Plus, RefreshCw, Search, ShieldCheck, Store, Tags, Trash2, UserCog, Users, Warehouse } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { ROLE_LABELS } from '../../lib/permissions';
 import { useAuth, type AppRole } from '../auth/AuthContext';
 import { recordActivity } from '../../services/activityLog';
 import type { InventoryCategory, WarehouseConfig } from '../../types';
 
-interface ProfileRow {
-  id: string;
-  full_name: string;
-  email: string | null;
-  role: AppRole;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+interface ProfileRow { id:string; full_name:string; email:string|null; role:AppRole; is_active:boolean; created_at:string; updated_at:string; }
+interface ActivityRow { id:number; action:string; entity_type:string; entity_id:string|null; description:string; created_at:string; profiles:{full_name:string}|null; }
+interface StateRow { payload:Record<string,unknown[]>; updated_at:string; version:number; }
+type Section = 'overview'|'users'|'master'|'activity';
+type MasterTab = 'categories'|'locations';
 
-interface ActivityRow {
-  id: number;
-  action: string;
-  entity_type: string;
-  entity_id: string | null;
-  description: string;
-  created_at: string;
-  profiles: { full_name: string } | null;
-}
-
-interface StateRow {
-  payload: Record<string, unknown[]>;
-  updated_at: string;
-  version: number;
-}
-
-const roles: AppRole[] = ['master', 'manajer', 'purchasing', 'warehouse', 'viewer'];
-const defaultCategories = ['Bahan Baku & Kimia Industri','Kemasan & Packaging','Suku Cadang & Sparepart','ATK & Perlengkapan Kantor','Elektrikal & IT Hardware','Lain-lain'].map((name,index)=>({ id:`cat-default-${index}`, name, isActive:true }));
-const defaultLocations: WarehouseConfig[] = [
+const roles:AppRole[] = ['master','manajer','purchasing','warehouse','viewer'];
+const defaultCategories = ['Bahan Baku & Kimia Industri','Kemasan & Packaging','Suku Cadang & Sparepart','ATK & Perlengkapan Kantor','Elektrikal & IT Hardware','Lain-lain'].map((name,index)=>({id:`cat-default-${index}`,name,isActive:true}));
+const defaultLocations:WarehouseConfig[] = [
   ['JKT','Warehouse Jakarta','warehouse','Jakarta'],['ACH','Warehouse Aceh','warehouse','Banda Aceh'],['RTI','Warehouse Roti','warehouse','Banda Aceh'],['BTR','Bintaro','store','Tangerang Selatan'],['GRH','Graha Raya','store','Tangerang'],['TMP','TMP','store','Banda Aceh'],['LMT','Lamteh','store','Banda Aceh'],['BTH','Batoh','store','Banda Aceh'],['SRT','Store Roti Kiri','store','Banda Aceh'],
-].map(([code,name,type,city],index)=>({ id:`location-default-${index}`, code, name, type:type as 'warehouse'|'store', city, isActive:true }));
-const dataKeys = [
-  ['kiri_warehouse_items', 'SKU'],
-  ['kiri_suppliers', 'Supplier'],
-  ['kiri_requisitions', 'PR'],
-  ['kiri_purchase_orders', 'PO'],
-  ['kiri_goods_receipts', 'GRN'],
-  ['kiri_stock_opnames', 'Opname'],
-  ['kiri_store_transfers', 'Transfer'],
-] as const;
+].map(([code,name,type,city],index)=>({id:`location-default-${index}`,code,name,type:type as 'warehouse'|'store',city,isActive:true}));
+const dataKeys = [['kiri_warehouse_items','SKU'],['kiri_suppliers','Supplier'],['kiri_requisitions','PR'],['kiri_purchase_orders','PO'],['kiri_goods_receipts','GRN'],['kiri_stock_opnames','Opname'],['kiri_store_transfers','Transfer']] as const;
+const nav = [{id:'overview',label:'Ringkasan',icon:ShieldCheck},{id:'users',label:'Pengguna & Role',icon:UserCog},{id:'master',label:'Master Data',icon:Database},{id:'activity',label:'Aktivitas',icon:Activity}] as const;
 
-export const AdminDashboard: React.FC = () => {
-  const { profile, signOut } = useAuth();
-  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
-  const [activities, setActivities] = useState<ActivityRow[]>([]);
-  const [appState, setAppState] = useState<StateRow | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState('');
-  const [message, setMessage] = useState('');
-  const [categories, setCategories] = useState<InventoryCategory[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseConfig[]>([]);
-  const [newCategory, setNewCategory] = useState('');
-  const [newLocation, setNewLocation] = useState({ code: '', name: '', city: '', type: 'warehouse' as 'warehouse' | 'store' });
+const StatusButton:React.FC<{active:boolean;disabled?:boolean;onClick:()=>void}> = ({active,disabled,onClick}) => <button disabled={disabled} onClick={onClick} className={`min-h-9 rounded-full px-3 text-[10px] font-bold disabled:opacity-50 ${active?'bg-[#e8f7e4] text-[#356d2f]':'bg-[#efefec] text-[#666]'}`}>{active?'Aktif':'Nonaktif'}</button>;
 
-  const load = useCallback(async () => {
-    if (!supabase) return;
-    setLoading(true);
-    setMessage('');
-    const [profileResult, activityResult, stateResult] = await Promise.all([
-      supabase.from('profiles').select('id, email, full_name, role, is_active, created_at, updated_at').order('created_at', { ascending: false }),
-      supabase.from('activity_log').select('id, action, entity_type, entity_id, description, created_at, profiles(full_name)').order('created_at', { ascending: false }).limit(100),
-      supabase.from('app_state').select('payload, updated_at, version').eq('id', 1).maybeSingle(),
+export const AdminDashboard:React.FC = () => {
+  const {profile,signOut} = useAuth();
+  const [profiles,setProfiles] = useState<ProfileRow[]>([]);
+  const [activities,setActivities] = useState<ActivityRow[]>([]);
+  const [appState,setAppState] = useState<StateRow|null>(null);
+  const [loading,setLoading] = useState(true);
+  const [savingId,setSavingId] = useState('');
+  const [message,setMessage] = useState('');
+  const [categories,setCategories] = useState<InventoryCategory[]>([]);
+  const [warehouses,setWarehouses] = useState<WarehouseConfig[]>([]);
+  const [newCategory,setNewCategory] = useState('');
+  const [newLocation,setNewLocation] = useState({code:'',name:'',city:'',type:'warehouse' as 'warehouse'|'store'});
+  const [section,setSection] = useState<Section>('overview');
+  const [masterTab,setMasterTab] = useState<MasterTab>('categories');
+  const [search,setSearch] = useState('');
+
+  const load = useCallback(async()=>{
+    if(!supabase)return; setLoading(true); setMessage('');
+    const [p,a,s] = await Promise.all([
+      supabase.from('profiles').select('id,email,full_name,role,is_active,created_at,updated_at').order('created_at',{ascending:false}),
+      supabase.from('activity_log').select('id,action,entity_type,entity_id,description,created_at,profiles(full_name)').order('created_at',{ascending:false}).limit(100),
+      supabase.from('app_state').select('payload,updated_at,version').eq('id',1).maybeSingle(),
     ]);
-    const error = profileResult.error || activityResult.error || stateResult.error;
-    if (error) setMessage(error.message);
-    else {
-      setProfiles((profileResult.data || []) as ProfileRow[]);
-      setActivities((activityResult.data || []) as unknown as ActivityRow[]);
-      setAppState(stateResult.data as StateRow | null);
-    }
-    setLoading(false);
-  }, []);
+    const error=p.error||a.error||s.error;
+    if(error)setMessage(error.message); else {setProfiles((p.data||[]) as ProfileRow[]);setActivities((a.data||[]) as unknown as ActivityRow[]);setAppState(s.data as StateRow|null);} setLoading(false);
+  },[]);
+  useEffect(()=>{void load();},[load]);
+  useEffect(()=>{if(!appState)return;setCategories((appState.payload.kiri_inventory_categories?.length?appState.payload.kiri_inventory_categories:defaultCategories) as unknown as InventoryCategory[]);setWarehouses((appState.payload.kiri_warehouses?.length?appState.payload.kiri_warehouses:defaultLocations) as unknown as WarehouseConfig[]);},[appState]);
 
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    if (!appState) return;
-    setCategories((appState.payload.kiri_inventory_categories?.length ? appState.payload.kiri_inventory_categories : defaultCategories) as unknown as InventoryCategory[]);
-    setWarehouses((appState.payload.kiri_warehouses?.length ? appState.payload.kiri_warehouses : defaultLocations) as unknown as WarehouseConfig[]);
-  }, [appState]);
-
-  const saveWarehouseSettings = async (nextCategories = categories, nextWarehouses = warehouses) => {
-    if (!supabase || !appState) return;
-    setMessage('');
-    const payload = { ...appState.payload, kiri_inventory_categories: nextCategories, kiri_warehouses: nextWarehouses };
-    const { error } = await supabase.from('app_state').upsert({ id: 1, payload, updated_at: new Date().toISOString() });
-    if (error) setMessage(error.message);
-    else { setMessage('Pengaturan gudang berhasil disimpan. Muat ulang aplikasi operasional untuk menggunakan perubahan.'); await recordActivity('system', 'warehouse_settings', null, 'Admin memperbarui kategori atau lokasi gudang'); await load(); }
+  const saveSettings=async(nextCategories=categories,nextWarehouses=warehouses)=>{
+    if(!supabase||!appState)return; setMessage('');
+    const payload={...appState.payload,kiri_inventory_categories:nextCategories,kiri_warehouses:nextWarehouses};
+    const {error}=await supabase.from('app_state').upsert({id:1,payload,updated_at:new Date().toISOString()});
+    if(error)setMessage(error.message);else{setMessage('Perubahan master data berhasil disimpan.');await recordActivity('system','warehouse_settings',null,'Admin memperbarui kategori atau lokasi gudang');await load();}
   };
+  const addCategory=()=>{const name=newCategory.trim();if(!name)return setMessage('Nama kategori wajib diisi.');if(categories.some(x=>x.name.toLowerCase()===name.toLowerCase()))return setMessage('Kategori tersebut sudah ada.');const next=[...categories,{id:`cat-${Date.now()}`,name,isActive:true}];setCategories(next);setNewCategory('');void saveSettings(next,warehouses);};
+  const addLocation=()=>{const code=newLocation.code.trim().toUpperCase(),name=newLocation.name.trim();if(!code||!name)return setMessage('Kode dan nama lokasi wajib diisi.');if(warehouses.some(x=>x.code.toLowerCase()===code.toLowerCase()))return setMessage('Kode lokasi sudah digunakan.');const next=[...warehouses,{id:`location-${Date.now()}`,code,name,city:newLocation.city.trim()||'Indonesia',type:newLocation.type,isActive:true}];setWarehouses(next);setNewLocation({code:'',name:'',city:'',type:'warehouse'});void saveSettings(categories,next);};
+  const updateCategory=(id:string,changes:Partial<InventoryCategory>)=>{const next=categories.map(x=>x.id===id?{...x,...changes}:x);setCategories(next);void saveSettings(next,warehouses);};
+  const updateLocation=(id:string,changes:Partial<WarehouseConfig>)=>{const next=warehouses.map(x=>x.id===id?{...x,...changes}:x);setWarehouses(next);void saveSettings(categories,next);};
+  const updateProfile=async(row:ProfileRow,changes:Partial<Pick<ProfileRow,'role'|'is_active'>>)=>{if(!supabase||row.id===profile.id)return;setSavingId(row.id);const {error}=await supabase.from('profiles').update({...changes,updated_at:new Date().toISOString()}).eq('id',row.id);if(error)setMessage(error.message);else{await recordActivity('system','profile',row.id,`Admin mengubah akun ${row.full_name}`);await load();}setSavingId('');};
+  const totals=useMemo(()=>Object.fromEntries(dataKeys.map(([key])=>[key,appState?.payload?.[key]?.length||0])),[appState]);
+  const query=search.trim().toLowerCase();
+  const visibleCategories=categories.filter(x=>!query||x.name.toLowerCase().includes(query));
+  const visibleLocations=warehouses.filter(x=>!query||`${x.code} ${x.name} ${x.city} ${x.type}`.toLowerCase().includes(query));
+  const downloadBackup=()=>{if(!appState)return;const blob=new Blob([JSON.stringify({exportDate:new Date().toISOString(),...appState.payload},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`kiri-wms-admin-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);};
 
-  const addCategory = () => {
-    const name = newCategory.trim(); if (!name || categories.some((item) => item.name.toLowerCase() === name.toLowerCase())) return;
-    const next = [...categories, { id: `cat-${Date.now()}`, name, isActive: true }]; setCategories(next); setNewCategory(''); void saveWarehouseSettings(next, warehouses);
-  };
+  return <div className="min-h-screen bg-[#f3f2ef] text-[#242424] md:flex">
+    <aside className="hidden w-[248px] shrink-0 border-r border-[#e7e5e0] bg-[#fbfbf9] p-3 md:flex md:min-h-screen md:flex-col">
+      <div className="flex items-center gap-3 px-2 py-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#252525] text-[#82dd70]"><ShieldCheck size={20}/></span><div><p className="text-sm font-extrabold">Kiri Supply</p><p className="text-[10px] text-[#888781]">Administration</p></div></div>
+      <nav className="mt-6 space-y-1">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>setSection(id)} className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[13px] ${section===id?'bg-[#82dd70] font-bold text-[#183316]':'font-medium text-[#676762] hover:bg-[#f0efeb]'}`}><Icon size={18}/>{label}</button>)}</nav>
+      <div className="mt-auto space-y-2"><a href="/" className="flex min-h-11 items-center gap-2 rounded-xl border bg-white px-3 text-xs font-bold"><ArrowLeft size={15}/>Kembali ke aplikasi</a><button onClick={()=>void signOut()} className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-xs font-bold text-rose-700 hover:bg-rose-50"><LogOut size={15}/>Keluar</button><div className="rounded-xl bg-[#f0efeb] p-3"><p className="truncate text-xs font-bold">{profile.fullName}</p><p className="text-[10px] uppercase text-[#888781]">Master administrator</p></div></div>
+    </aside>
 
-  const addLocation = () => {
-    if (!newLocation.code.trim() || !newLocation.name.trim()) return;
-    const next = [...warehouses, { id: `location-${Date.now()}`, code: newLocation.code.trim().toUpperCase(), name: newLocation.name.trim(), city: newLocation.city.trim() || 'Indonesia', type: newLocation.type, isActive: true }]; setWarehouses(next); setNewLocation({ code: '', name: '', city: '', type: 'warehouse' }); void saveWarehouseSettings(categories, next);
-  };
+    <div className="min-w-0 flex-1"><header className="sticky top-0 z-30 border-b border-[#e7e5e0] bg-[#f3f2ef]/95 backdrop-blur-lg"><div className="flex min-h-[68px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8"><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8a8983]">Admin Console</p><h1 className="text-lg font-black">{nav.find(x=>x.id===section)?.label}</h1></div><div className="flex gap-2"><button onClick={()=>void load()} className="flex h-10 w-10 items-center justify-center rounded-xl border bg-white"><RefreshCw size={16} className={loading?'animate-spin':''}/></button><button onClick={downloadBackup} className="hidden min-h-10 items-center gap-2 rounded-xl bg-[#252525] px-3 text-xs font-bold text-white sm:flex"><Download size={15} className="text-[#82dd70]"/>Backup</button><a href="/" className="flex h-10 w-10 items-center justify-center rounded-xl border bg-white md:hidden"><ArrowLeft size={16}/></a></div></div><nav className="flex gap-1 overflow-x-auto px-3 pb-2 md:hidden">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>setSection(id)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-xs font-bold ${section===id?'bg-[#252525] text-white':'bg-white text-[#686762]'}`}><Icon size={15} className={section===id?'text-[#82dd70]':''}/>{label}</button>)}</nav></header>
 
-  const updateProfile = async (row: ProfileRow, changes: Partial<Pick<ProfileRow, 'role' | 'is_active'>>) => {
-    if (!supabase || row.id === profile.id) return;
-    setSavingId(row.id);
-    setMessage('');
-    const { error } = await supabase.from('profiles').update({ ...changes, updated_at: new Date().toISOString() }).eq('id', row.id);
-    if (error) setMessage(error.message);
-    else {
-      const change = changes.role ? `role menjadi ${ROLE_LABELS[changes.role]}` : `status menjadi ${changes.is_active ? 'aktif' : 'nonaktif'}`;
-      await recordActivity('system', 'profile', row.id, `Admin mengubah akun ${row.full_name || row.id}: ${change}`);
-      await load();
-    }
-    setSavingId('');
-  };
+      <main className="mx-auto max-w-[1440px] space-y-4 p-3 pb-12 sm:p-6 lg:p-8">
+        {message&&<div role="status" className={`rounded-xl border px-4 py-3 text-xs font-semibold ${/berhasil/i.test(message)?'border-green-200 bg-green-50 text-green-800':'border-amber-200 bg-amber-50 text-amber-800'}`}>{message}</div>}
 
-  const totals = useMemo(() => Object.fromEntries(dataKeys.map(([key]) => [key, appState?.payload?.[key]?.length || 0])), [appState]);
+        {section==='overview'&&<><section className="flex flex-col justify-between gap-3 rounded-2xl border bg-white p-5 sm:flex-row sm:items-center"><div><p className="text-xs font-semibold text-[#777773]">Selamat datang, {profile.fullName}</p><h2 className="mt-1 text-xl font-black sm:text-2xl">Kondisi sistem hari ini</h2><p className="mt-1 text-xs text-[#888781]">Pantau pengguna, data operasional, dan master gudang.</p></div><button onClick={()=>setSection('master')} className="min-h-11 rounded-xl bg-[#82dd70] px-4 text-xs font-bold text-[#183316]">Kelola master data</button></section>
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[[Users,profiles.length,'Total akun',`${profiles.filter(x=>x.is_active).length} aktif`],[Package,totals.kiri_warehouse_items||0,'Master SKU',`${categories.filter(x=>x.isActive).length} kategori aktif`],[Warehouse,warehouses.filter(x=>x.type==='warehouse'&&x.isActive).length,'Gudang aktif',`${warehouses.filter(x=>x.type==='store'&&x.isActive).length} store`],[Activity,activities.length,'Aktivitas',appState?.updated_at?`Sync ${new Date(appState.updated_at).toLocaleDateString('id-ID')}`:'Belum sinkron']].map(([Icon,value,label,note])=>{const I=Icon as typeof Users;return <article key={String(label)} className="rounded-2xl border bg-white p-4"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0efeb]"><I size={17}/></span><p className="mt-3 text-2xl font-black">{String(value)}</p><p className="text-xs font-bold">{String(label)}</p><p className="mt-1 text-[10px] text-[#888781]">{String(note)}</p></article>;})}</section>
+          <section className="rounded-2xl border bg-white p-4"><h3 className="font-black">Data operasional</h3><p className="text-[10px] text-[#888781]">Snapshot data tersimpan saat ini</p><div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">{dataKeys.map(([key,label])=><div key={key} className="rounded-xl bg-[#f7f6f3] p-3"><p className="text-lg font-black">{totals[key]||0}</p><p className="text-[10px] font-semibold text-[#777773]">{label}</p></div>)}</div></section></>}
 
-  const downloadBackup = () => {
-    if (!appState) return;
-    const blob = new Blob([JSON.stringify({ exportDate: new Date().toISOString(), ...appState.payload }, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `kiri-wms-admin-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  };
+        {section==='users'&&<section className="overflow-hidden rounded-2xl border bg-white"><div className="border-b p-5"><h2 className="font-black">Pengguna & hak akses</h2><p className="text-[11px] text-[#888781]">Atur role dan status akun. Akun Anda sendiri dilindungi.</p></div><div className="divide-y">{profiles.map(row=><article key={row.id} className="grid gap-3 p-4 sm:grid-cols-[minmax(220px,1fr)_180px_110px_100px] sm:items-center"><div><p className="text-sm font-bold">{row.full_name||'Tanpa nama'}</p><p className="text-[11px] text-[#888781]">{row.email||'Akun pengguna'}</p></div><select value={row.role} disabled={row.id===profile.id||savingId===row.id} onChange={e=>void updateProfile(row,{role:e.target.value as AppRole})} className="min-h-11 rounded-xl border bg-white px-3 text-xs">{roles.map(role=><option key={role} value={role}>{ROLE_LABELS[role]}</option>)}</select><StatusButton active={row.is_active} disabled={row.id===profile.id||savingId===row.id} onClick={()=>void updateProfile(row,{is_active:!row.is_active})}/><p className="text-[10px] text-[#888781]">{new Date(row.created_at).toLocaleDateString('id-ID')}</p></article>)}</div></section>}
 
-  return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <header className="border-b border-slate-800 bg-slate-950 text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4">
-          <div className="flex items-center gap-3"><ShieldCheck className="text-emerald-400" /><div><h1 className="font-black">Admin KIRI WMS</h1><p className="text-xs text-slate-400">Akun, role, dan aktivitas sistem</p></div></div>
-          <div className="flex items-center gap-2">
-            <a href="/" className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-700 px-3 text-xs font-bold"><ArrowLeft size={15} /> Aplikasi</a>
-            <button onClick={() => void signOut()} className="flex min-h-10 items-center gap-2 rounded-xl bg-rose-600 px-3 text-xs font-bold"><LogOut size={15} /> Keluar</button>
-          </div>
-        </div>
-      </header>
+        {section==='master'&&<section className="overflow-hidden rounded-2xl border bg-white"><div className="border-b p-4 sm:p-5"><h2 className="font-black">Master Data</h2><p className="text-[11px] text-[#888781]">Kategori barang dan jaringan gudang/store.</p><div className="mt-4 flex gap-1 rounded-xl bg-[#f1f0ec] p-1">{[{id:'categories' as const,label:`Kategori (${categories.length})`,icon:Tags},{id:'locations' as const,label:`Lokasi (${warehouses.length})`,icon:MapPin}].map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setMasterTab(id);setSearch('');}} className={`flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg text-xs font-bold ${masterTab===id?'bg-white shadow-sm':'text-[#777773]'}`}><Icon size={15}/>{label}</button>)}</div></div>
+          <div className="grid lg:grid-cols-[330px_minmax(0,1fr)]"><div className="border-b bg-[#faf9f6] p-4 lg:border-b-0 lg:border-r"><h3 className="text-sm font-black">Tambah {masterTab==='categories'?'kategori':'lokasi'}</h3><p className="mt-1 text-[10px] text-[#888781]">{masterTab==='categories'?'Nama harus jelas dan tidak duplikat.':'Kode lokasi harus unik dan singkat.'}</p>{masterTab==='categories'?<div className="mt-4 space-y-2"><input value={newCategory} onChange={e=>setNewCategory(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')addCategory();}} placeholder="Nama kategori baru" className="h-11 w-full rounded-xl border bg-white px-3 text-sm"/><button onClick={addCategory} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#82dd70] text-xs font-bold text-[#183316]"><Plus size={15}/>Tambah kategori</button></div>:<div className="mt-4 grid grid-cols-2 gap-2"><input value={newLocation.code} onChange={e=>setNewLocation(x=>({...x,code:e.target.value}))} placeholder="Kode" maxLength={8} className="h-11 rounded-xl border px-3 text-sm uppercase"/><select value={newLocation.type} onChange={e=>setNewLocation(x=>({...x,type:e.target.value as 'warehouse'|'store'}))} className="h-11 rounded-xl border bg-white px-2 text-sm"><option value="warehouse">Gudang</option><option value="store">Store</option></select><input value={newLocation.name} onChange={e=>setNewLocation(x=>({...x,name:e.target.value}))} placeholder="Nama lokasi" className="col-span-2 h-11 rounded-xl border px-3 text-sm"/><input value={newLocation.city} onChange={e=>setNewLocation(x=>({...x,city:e.target.value}))} placeholder="Kota" className="col-span-2 h-11 rounded-xl border px-3 text-sm"/><button onClick={addLocation} className="col-span-2 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#82dd70] text-xs font-bold text-[#183316]"><Plus size={15}/>Tambah lokasi</button></div>}</div>
+            <div className="min-w-0 p-4 sm:p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-black">Daftar {masterTab==='categories'?'kategori barang':'gudang & store'}</h3><p className="text-[10px] text-[#888781]">Nonaktifkan data lama agar histori tetap aman.</p></div><label className="relative sm:w-64"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999]"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cari master data..." className="h-10 w-full rounded-xl border pl-9 pr-3 text-xs"/></label></div><div className="mt-4 space-y-2">{masterTab==='categories'?visibleCategories.map(category=><div key={category.id} className="flex items-center gap-3 rounded-xl border p-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef8eb] text-[#43833a]"><Tags size={16}/></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{category.name}</p><p className="text-[10px] text-[#888781]">{category.isActive?'Tersedia untuk SKU baru':'Diarsipkan'}</p></div><StatusButton active={category.isActive} onClick={()=>updateCategory(category.id,{isActive:!category.isActive})}/><button onClick={()=>{if(window.confirm(`Hapus kategori ${category.name}?`)){const next=categories.filter(x=>x.id!==category.id);setCategories(next);void saveSettings(next,warehouses);}}} className="flex h-9 w-9 items-center justify-center rounded-lg text-rose-600"><Trash2 size={15}/></button></div>):visibleLocations.map(location=>{const Icon=location.type==='warehouse'?Warehouse:Store;return <div key={location.id} className="flex items-center gap-3 rounded-xl border p-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef8eb] text-[#43833a]"><Icon size={17}/></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{location.name} <span className="font-mono text-[9px] text-[#888]">{location.code}</span></p><p className="text-[10px] capitalize text-[#888781]">{location.type==='warehouse'?'Gudang':'Store'} · {location.city}</p></div><StatusButton active={location.isActive} onClick={()=>updateLocation(location.id,{isActive:!location.isActive})}/><button onClick={()=>{if(window.confirm(`Hapus lokasi ${location.name}?`)){const next=warehouses.filter(x=>x.id!==location.id);setWarehouses(next);void saveSettings(categories,next);}}} className="flex h-9 w-9 items-center justify-center rounded-lg text-rose-600"><Trash2 size={15}/></button></div>;})}{((masterTab==='categories'&&!visibleCategories.length)||(masterTab==='locations'&&!visibleLocations.length))&&<p className="rounded-xl border border-dashed p-8 text-center text-xs text-[#777]">Data tidak ditemukan.</p>}</div></div></div></section>}
 
-      <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-        <section className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div><h2 className="text-2xl font-black">Ringkasan Sistem</h2><p className="text-sm text-slate-500">Masuk sebagai {profile.fullName} · Master</p></div>
-          <div className="flex gap-2"><button onClick={() => void load()} disabled={loading} className="flex min-h-11 items-center gap-2 rounded-xl border bg-white px-4 text-sm font-bold"><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh</button><button onClick={downloadBackup} disabled={!appState} className="flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white"><Download size={16} /> Backup</button></div>
-        </section>
-        {message && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{message}</p>}
-
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="rounded-2xl border bg-white p-4"><Users className="text-indigo-600" /><p className="mt-3 text-2xl font-black">{profiles.length}</p><p className="text-xs text-slate-500">Total akun</p></div>
-          <div className="rounded-2xl border bg-white p-4"><ShieldCheck className="text-emerald-600" /><p className="mt-3 text-2xl font-black">{profiles.filter(item => item.is_active).length}</p><p className="text-xs text-slate-500">Akun aktif</p></div>
-          <div className="rounded-2xl border bg-white p-4"><Database className="text-sky-600" /><p className="mt-3 text-2xl font-black">{totals.kiri_warehouse_items || 0}</p><p className="text-xs text-slate-500">Master SKU</p></div>
-          <div className="rounded-2xl border bg-white p-4"><Activity className="text-amber-600" /><p className="mt-3 text-sm font-black">{appState?.updated_at ? new Date(appState.updated_at).toLocaleString('id-ID') : '-'}</p><p className="text-xs text-slate-500">Sinkronisasi terakhir</p></div>
-        </section>
-
-        <section className="rounded-2xl border bg-white p-4 sm:p-5">
-          <h3 className="text-lg font-black">Data Operasional</h3>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">{dataKeys.map(([key, label]) => <div key={key} className="rounded-xl bg-slate-50 p-3"><p className="text-xl font-black">{totals[key] || 0}</p><p className="text-xs text-slate-500">{label}</p></div>)}</div>
-        </section>
-
-        <section className="overflow-hidden rounded-2xl border bg-white">
-          <div className="border-b p-4 sm:p-5"><h3 className="text-lg font-black">Kelola Akun</h3><p className="text-xs text-slate-500">Pengguna mendaftar dari aplikasi, lalu Master menetapkan role dan status aktif di sini.</p></div>
-          <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="p-3">Nama</th><th className="p-3">Role</th><th className="p-3">Status</th><th className="p-3">Terdaftar</th></tr></thead><tbody>{profiles.map(row => <tr key={row.id} className="border-t"><td className="p-3"><p className="font-bold">{row.full_name || 'Tanpa nama'}</p><p className="text-xs text-slate-400">{row.email || (row.id === profile.id ? 'Akun Anda' : row.id.slice(0, 8))}</p></td><td className="p-3"><select aria-label={`Role ${row.full_name}`} value={row.role} disabled={row.id === profile.id || savingId === row.id} onChange={event => void updateProfile(row, { role: event.target.value as AppRole })} className="min-h-10 rounded-lg border px-2 disabled:bg-slate-100">{roles.map(role => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}</select></td><td className="p-3"><button disabled={row.id === profile.id || savingId === row.id} onClick={() => void updateProfile(row, { is_active: !row.is_active })} className={`min-h-10 rounded-lg px-3 text-xs font-bold text-white disabled:bg-slate-300 ${row.is_active ? 'bg-emerald-600' : 'bg-slate-500'}`}>{row.is_active ? 'Aktif' : 'Nonaktif'}</button></td><td className="p-3 text-xs text-slate-500">{new Date(row.created_at).toLocaleDateString('id-ID')}</td></tr>)}</tbody></table></div>
-        </section>
-
-        <section className="rounded-2xl border bg-white p-4 sm:p-5">
-          <div className="flex items-center gap-2"><Settings2 className="text-emerald-600"/><div><h3 className="text-lg font-black">Kategori & Management Gudang</h3><p className="text-xs text-slate-500">Dipakai oleh master barang, opname, transfer store, dan laporan.</p></div></div>
-          <div className="mt-5 grid gap-5 lg:grid-cols-2">
-            <div><h4 className="text-sm font-black">Kategori Barang</h4><div className="mt-2 flex gap-2"><input value={newCategory} onChange={event=>setNewCategory(event.target.value)} onKeyDown={event=>{if(event.key==='Enter')addCategory();}} placeholder="Nama kategori baru" className="h-11 min-w-0 flex-1 rounded-xl border px-3 text-sm"/><button onClick={addCategory} className="flex h-11 items-center gap-1 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white"><Plus size={15}/>Tambah</button></div><div className="mt-3 space-y-2">{categories.length?categories.map(category=><div key={category.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2"><span className="text-sm font-semibold">{category.name}</span><button onClick={()=>{const next=categories.filter(item=>item.id!==category.id);setCategories(next);void saveWarehouseSettings(next,warehouses);}} className="flex h-9 w-9 items-center justify-center rounded-lg text-rose-600"><Trash2 size={15}/></button></div>):<p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-700">Belum ada kategori khusus. Aplikasi masih memakai kategori dari master SKU.</p>}</div></div>
-            <div><h4 className="text-sm font-black">Gudang & Store</h4><div className="mt-2 grid grid-cols-2 gap-2"><input value={newLocation.code} onChange={event=>setNewLocation(current=>({...current,code:event.target.value}))} placeholder="Kode" className="h-11 rounded-xl border px-3 text-sm"/><select value={newLocation.type} onChange={event=>setNewLocation(current=>({...current,type:event.target.value as 'warehouse'|'store'}))} className="h-11 rounded-xl border px-3 text-sm"><option value="warehouse">Warehouse</option><option value="store">Store</option></select><input value={newLocation.name} onChange={event=>setNewLocation(current=>({...current,name:event.target.value}))} placeholder="Nama lokasi" className="h-11 rounded-xl border px-3 text-sm"/><input value={newLocation.city} onChange={event=>setNewLocation(current=>({...current,city:event.target.value}))} placeholder="Kota" className="h-11 rounded-xl border px-3 text-sm"/></div><button onClick={addLocation} className="mt-2 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-slate-900 text-xs font-bold text-white"><Plus size={15}/>Tambah Lokasi</button><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{warehouses.map(location=><div key={location.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2"><div><p className="text-sm font-semibold">{location.name} <span className="font-mono text-[10px] text-slate-400">{location.code}</span></p><p className="text-[10px] capitalize text-slate-500">{location.type} · {location.city}</p></div><button onClick={()=>{const next=warehouses.filter(item=>item.id!==location.id);setWarehouses(next);void saveWarehouseSettings(categories,next);}} className="flex h-9 w-9 items-center justify-center rounded-lg text-rose-600"><Trash2 size={15}/></button></div>)}</div></div>
-          </div>
-        </section>
-
-        <section className="overflow-hidden rounded-2xl border bg-white">
-          <div className="border-b p-4 sm:p-5"><h3 className="text-lg font-black">Aktivitas Terbaru</h3><p className="text-xs text-slate-500">Penambahan SKU, stok, PR, PO, GRN, supplier, dan perubahan lain.</p></div>
-          <div className="divide-y">{activities.length === 0 ? <p className="p-5 text-sm text-slate-500">Belum ada aktivitas setelah audit log diaktifkan.</p> : activities.map(item => <div key={item.id} className="flex items-start justify-between gap-3 p-4"><div><p className="text-sm font-bold">{item.description}</p><p className="text-xs text-slate-500">{item.profiles?.full_name || 'Pengguna'} · {item.entity_type}</p></div><time className="shrink-0 text-[11px] text-slate-400">{new Date(item.created_at).toLocaleString('id-ID')}</time></div>)}</div>
-        </section>
+        {section==='activity'&&<section className="overflow-hidden rounded-2xl border bg-white"><div className="border-b p-5"><h2 className="font-black">Aktivitas terbaru</h2><p className="text-[11px] text-[#888781]">Jejak perubahan operasional dan administratif.</p></div><div className="divide-y">{activities.length===0?<p className="p-8 text-center text-sm text-[#777]">Belum ada aktivitas.</p>:activities.map(item=><div key={item.id} className="flex items-start gap-3 p-4"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#82dd70]"/><div className="min-w-0 flex-1"><p className="text-sm font-bold">{item.description}</p><p className="text-[10px] text-[#888781]">{item.profiles?.full_name||'Pengguna'} · {item.entity_type}</p></div><time className="shrink-0 text-right text-[10px] text-[#888781]">{new Date(item.created_at).toLocaleString('id-ID')}</time></div>)}</div></section>}
       </main>
     </div>
-  );
+  </div>;
 };
