@@ -30,6 +30,7 @@ import {
 import { PRPrintModal } from '../common/PrintTemplates';
 import { useAuth } from '../auth/AuthContext';
 import { canCreatePO } from '../../lib/permissions';
+import { CreateRequisitionStepperModal } from './CreateRequisitionStepperModal';
 
 interface RequisitionViewProps {
   isCreateModalOpen: boolean;
@@ -578,7 +579,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
       </div>
 
       {/* Modal: Buat PR Baru */}
-      {isCreateModalOpen && (
+      {false && isCreateModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full my-6 overflow-hidden flex flex-col max-h-[92vh] border border-slate-100">
             <div className="bg-slate-900 text-white px-5 sm:px-6 py-3.5 flex items-center justify-between">
@@ -843,6 +844,11 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
           </div>
         </div>
       )}
+
+      <CreateRequisitionStepperModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
 
       {/* Modal: Detail PR */}
       {selectedPR && (
