@@ -8,6 +8,8 @@ import {
   QrCode,
   ShoppingCart,
   Truck,
+  ClipboardCheck,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { ActiveTab } from '../../types';
@@ -39,6 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenScanQR }) => {
       label: 'Master & stok',
       items: [
         { id: 'warehouse', label: 'Stok gudang', icon: Database, badge: getLowStockItems().length },
+        { id: 'stock_opname', label: 'Stock opname', icon: ClipboardCheck },
+        { id: 'store_transfers', label: 'Transfer store', icon: ArrowRightLeft },
         { id: 'suppliers', label: 'Supplier', icon: Building2 },
       ],
     },
