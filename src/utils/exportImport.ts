@@ -418,25 +418,46 @@ export function parseSuppliersCSV(csvText: string): { suppliers: Partial<Supplie
     return { suppliers, errors };
   }
 
-  const headerRow = (rows[0] || []).map((h) => (h || '').toLowerCase().trim());
-  const findIdx = (keywords: string[]) =>
-    headerRow.findIndex((h) => keywords.some((k) => h.includes(k)));
+  const normalizeHeader = (value: string) => value
+    .replace(/^\uFEFF/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  const headerRow = (rows[0] || []).map((h) => normalizeHeader(h || ''));
+  const findHeader = (aliases: string[], fallbackWords: string[] = []) => {
+    const normalizedAliases = aliases.map(normalizeHeader);
+    const exact = headerRow.findIndex((header) => normalizedAliases.includes(header));
+    if (exact !== -1) return exact;
+    return fallbackWords.length
+      ? headerRow.findIndex((header) => fallbackWords.every((word) => header.includes(word)))
+      : -1;
+  };
 
-  const codeIdx = findIdx(['kode', 'code']);
-  const nameIdx = findIdx(['nama', 'name', 'vendor', 'supplier']);
-  const catIdx = findIdx(['kategori', 'category']);
-  const picIdx = findIdx(['pic', 'kontak', 'contact', 'person']);
-  const phoneIdx = findIdx(['telp', 'telepon', 'phone', 'wa', 'hp']);
-  const emailIdx = findIdx(['email', 'surel']);
-  const addressIdx = findIdx(['alamat', 'address']);
-  const cityIdx = findIdx(['kota', 'city']);
-  const termIdx = findIdx(['syarat', 'pembayaran', 'term', 'top']);
+  // Use explicit aliases so "Kode Supplier" is never mistaken for "Nama Supplier".
+  const codeIdx = findHeader(['kode supplier', 'kode vendor', 'supplier code', 'vendor code', 'kode', 'code']);
+  const nameIdx = findHeader(['nama supplier', 'nama vendor', 'supplier name', 'vendor name', 'nama rekanan'], ['nama']);
+  const catIdx = findHeader(['kategori vendor', 'kategori supplier', 'vendor category', 'supplier category', 'kategori', 'category']);
+  const picIdx = findHeader(['nama kontak pic', 'kontak pic', 'pic', 'contact person', 'nama kontak']);
+  const phoneIdx = findHeader(['no telepon', 'nomor telepon', 'telepon', 'telp', 'phone', 'whatsapp', 'no wa', 'hp']);
+  const emailIdx = findHeader(['email', 'email supplier', 'email vendor', 'surel']);
+  const addressIdx = findHeader(['alamat lengkap', 'alamat', 'address']);
+  const cityIdx = findHeader(['kota', 'city']);
+  const termIdx = findHeader(['syarat pembayaran default', 'syarat pembayaran top', 'syarat pembayaran', 'payment term', 'top']);
+
+  if (nameIdx === -1) {
+    errors.push('Kolom "Nama Supplier" tidak ditemukan. Gunakan template supplier yang tersedia.');
+    return { suppliers, errors };
+  }
+  if (codeIdx !== -1 && codeIdx === nameIdx) {
+    errors.push('Kolom kode dan nama supplier terbaca sama. Periksa header file CSV.');
+    return { suppliers, errors };
+  }
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (row.length === 0 || row.every((c) => !c.trim())) continue;
 
-    const name = nameIdx !== -1 ? row[nameIdx] : row[1] || '';
+    const name = row[nameIdx] || '';
     if (!name || !name.trim()) {
       errors.push(`Baris ${i + 1}: Nama supplier kosong, dilewati.`);
       continue;
