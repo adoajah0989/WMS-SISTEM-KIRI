@@ -537,7 +537,7 @@ export const DataCenterModal: React.FC<DataCenterModalProps> = ({
                 <div>
                   <h4 className="text-xs font-bold text-slate-900">Langkah 1: Unduh Format Template CSV Supplier</h4>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Kolom mencakup: Kode, Nama Vendor, PIC, No Telepon/WA, Email, Alamat, Kota, Syarat TOP.
+                    Kolom mencakup: Kode, Nama Vendor, Kategori, PIC, No Telepon/WA, Email, Alamat, Kota, Syarat TOP.
                   </p>
                 </div>
                 <button
@@ -609,6 +609,20 @@ export const DataCenterModal: React.FC<DataCenterModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {supplierParseErrors.length > 0 && (
+                <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                      <p className="font-bold">Periksa format data supplier</p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                        {supplierParseErrors.slice(0, 5).map((error, index) => <li key={`${error}-${index}`}>{error}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Step 3: Preview Table */}
               {parsedSuppliers.length > 0 && (
