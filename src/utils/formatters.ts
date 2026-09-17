@@ -119,6 +119,10 @@ export const getMovementBadge = (type: MovementType) => {
       return { label: 'Pengambilan Internal (-)', isPositive: false, color: 'text-slate-700 bg-slate-100' };
     case 'retur':
       return { label: 'Retur ke Vendor (-)', isPositive: false, color: 'text-rose-700 bg-rose-50' };
+    case 'opname_adjustment':
+      return { label: 'Penyesuaian Opname', isPositive: true, color: 'text-violet-700 bg-violet-50' };
+    case 'transfer_keluar':
+      return { label: 'Transfer ke Store (-)', isPositive: false, color: 'text-sky-700 bg-sky-50' };
   }
 };
 
