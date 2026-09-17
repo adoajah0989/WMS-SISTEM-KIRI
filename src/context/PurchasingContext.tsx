@@ -842,6 +842,8 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       name: imp.name?.trim() || 'Barang Baru',
       category: imp.category || 'Bahan Baku & Kimia Industri',
       unit: imp.unit || 'Pcs',
+      intermediateUnit: imp.intermediateUnit || undefined,
+      intermediateConversionRatio: imp.intermediateConversionRatio && imp.intermediateConversionRatio > 0 ? imp.intermediateConversionRatio : undefined,
       purchaseUnit: imp.purchaseUnit || imp.unit || 'Pcs',
       conversionRatio: imp.conversionRatio && imp.conversionRatio > 0 ? imp.conversionRatio : 1,
       currentStock: typeof imp.currentStock === 'number' ? imp.currentStock : 0,

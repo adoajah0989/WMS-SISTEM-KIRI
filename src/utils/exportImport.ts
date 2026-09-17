@@ -100,6 +100,8 @@ export function exportWarehouseItemsCSV(items: WarehouseItem[]) {
     'Nama Barang',
     'Kategori',
     'Satuan Dasar (Gudang)',
+    'Satuan Tengah (Opsional)',
+    'Rasio Satuan Tengah ke Dasar',
     'Satuan Beli / Kemasan',
     'Rasio Konversi (1 Satuan Beli = X Satuan Dasar)',
     'Stok Saat Ini',
@@ -115,6 +117,8 @@ export function exportWarehouseItemsCSV(items: WarehouseItem[]) {
     escapeCSV(item.name),
     escapeCSV(item.category),
     escapeCSV(item.unit || 'Pcs'),
+    escapeCSV(item.intermediateUnit || ''),
+    escapeCSV(item.intermediateConversionRatio || ''),
     escapeCSV(item.purchaseUnit || item.unit || 'Pcs'),
     escapeCSV(item.conversionRatio || 1),
     escapeCSV(item.currentStock || 0),
@@ -136,6 +140,8 @@ export function downloadTemplateWarehouseItemsCSV() {
     'Nama Barang',
     'Kategori',
     'Satuan Dasar (Gudang)',
+    'Satuan Tengah (Opsional)',
+    'Rasio Satuan Tengah ke Dasar',
     'Satuan Beli / Kemasan',
     'Rasio Konversi',
     'Stok Awal',
@@ -152,6 +158,8 @@ export function downloadTemplateWarehouseItemsCSV() {
       'Karton Box Master 40x30x25cm',
       'Kemasan & Packaging',
       'Pcs',
+      'Pack',
+      '6',
       'Dus',
       '24',
       '240',
@@ -166,6 +174,8 @@ export function downloadTemplateWarehouseItemsCSV() {
       'Solvent Cleaner Grade A',
       'Bahan Baku & Kimia Industri',
       'Liter',
+      '',
+      '',
       'Drum',
       '200',
       '400',
@@ -180,6 +190,8 @@ export function downloadTemplateWarehouseItemsCSV() {
       'Kertas HVS A4 80gr',
       'ATK & Perlengkapan Kantor',
       'Lembar',
+      'Pak',
+      '100',
       'Rim',
       '500',
       '2500',
@@ -214,8 +226,12 @@ export function parseWarehouseItemsCSV(csvText: string): { items: Partial<Wareho
   const nameIdx = findIdx(['nama', 'name', 'item', 'barang']);
   const categoryIdx = findIdx(['kategori', 'category']);
   const unitIdx = findIdx(['satuan dasar', 'base unit', 'satuan gudang', 'satuan']);
+  const intermediateUnitIdx = findIdx(['satuan tengah', 'intermediate unit', 'middle unit']);
+  const intermediateRatioIdx = findIdx(['rasio satuan tengah', 'konversi satuan tengah', 'intermediate ratio']);
   const purchaseUnitIdx = findIdx(['satuan beli', 'kemasan', 'purchase unit', 'order unit']);
-  const ratioIdx = findIdx(['konversi', 'rasio', 'ratio']);
+  const ratioIdx = headerRow.findIndex((header) =>
+    !header.includes('tengah') && ['konversi', 'rasio', 'ratio'].some((keyword) => header.includes(keyword))
+  );
   const stockIdx = findIdx(['stok', 'stock', 'qty']);
   const minStockIdx = findIdx(['minimum', 'min']);
   const locationIdx = findIdx(['lokasi', 'rak', 'location']);
@@ -250,6 +266,12 @@ export function parseWarehouseItemsCSV(csvText: string): { items: Partial<Wareho
     const sku = (skuIdx !== -1 && row[skuIdx]) ? row[skuIdx].trim() : `ITEM-${String(i).padStart(3, '0')}`;
     const category = categoryIdx !== -1 && row[categoryIdx] ? row[categoryIdx].trim() : 'Bahan Baku & Kimia Industri';
     const unit = unitIdx !== -1 && row[unitIdx] ? row[unitIdx].trim() : 'Pcs';
+    const intermediateUnit = intermediateUnitIdx !== -1 && row[intermediateUnitIdx] ? row[intermediateUnitIdx].trim() : '';
+    let intermediateConversionRatio: number | undefined;
+    if (intermediateRatioIdx !== -1 && row[intermediateRatioIdx]) {
+      const parsedIntermediateRatio = parseNumericCell(row[intermediateRatioIdx]);
+      if (!isNaN(parsedIntermediateRatio) && parsedIntermediateRatio > 0) intermediateConversionRatio = parsedIntermediateRatio;
+    }
     const purchaseUnit = purchaseUnitIdx !== -1 && row[purchaseUnitIdx] ? row[purchaseUnitIdx].trim() : unit;
     
     let conversionRatio = 1;
@@ -295,6 +317,8 @@ export function parseWarehouseItemsCSV(csvText: string): { items: Partial<Wareho
       name: name.trim(),
       category,
       unit,
+      intermediateUnit: intermediateUnit || undefined,
+      intermediateConversionRatio,
       purchaseUnit,
       conversionRatio,
       currentStock,

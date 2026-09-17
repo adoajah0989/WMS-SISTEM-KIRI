@@ -13,9 +13,11 @@ export interface WarehouseItem {
   sku: string;
   name: string;
   category: string;
-  unit: string; // Base unit / Satuan dasar gudang (e.g. Pcs, Kg, Meter, Liter, Lembar)
-  purchaseUnit?: string; // Satuan beli / kemasan default (e.g. Dus, Box, Rim, Roll, Drum, Zak, Lusin)
-  conversionRatio?: number; // 1 purchaseUnit = X unit dasar (e.g. 1 Dus = 24 Pcs, ratio = 24)
+  unit: string; // Level 1: base warehouse unit (e.g. Pcs)
+  intermediateUnit?: string; // Level 2: optional middle unit (e.g. Pack)
+  intermediateConversionRatio?: number; // 1 intermediateUnit = X base units
+  purchaseUnit?: string; // Level 3: purchase unit (e.g. Dus)
+  conversionRatio?: number; // 1 purchaseUnit = X base units
   currentStock: number; // in base units
   minStock: number;
   warehouseLocation: string; // e.g. Rak A-01, Gudang Utama
