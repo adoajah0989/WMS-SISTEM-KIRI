@@ -1,4 +1,5 @@
 export type PRStatus = 'draft' | 'menunggu_persetujuan' | 'disetujui' | 'ditolak' | 'dikonversi_ke_po';
+export type PRPricingStatus = 'belum_diminta' | 'menunggu_penawaran' | 'harga_diterima';
 export type PriorityLevel = 'rendah' | 'sedang' | 'tinggi' | 'urgent';
 
 export type POStatus = 'draft' | 'diterbitkan' | 'terkirim' | 'diterima_sebagian' | 'selesai' | 'dibatalkan';
@@ -80,6 +81,12 @@ export interface PurchaseRequisition {
   purpose: string;
   items: PRItem[];
   totalEstimatedAmount: number;
+  pricingStatus?: PRPricingStatus;
+  quotedSupplierId?: string;
+  quotedSupplierName?: string;
+  quotationNumber?: string;
+  quotedAt?: string;
+  pricedBy?: string;
   status: PRStatus;
   notes?: string;
   approvedBy?: string;
