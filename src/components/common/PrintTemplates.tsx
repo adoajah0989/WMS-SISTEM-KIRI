@@ -320,6 +320,15 @@ interface GRNPrintModalProps {
 }
 
 export const GRNPrintModal: React.FC<GRNPrintModalProps> = ({ grn, onClose }) => {
+  const [authQR, setAuthQR] = useState<string>('');
+
+  useEffect(() => {
+    let active = true;
+    generateQRCodeDataUrl(JSON.stringify({ app: 'kiri_supply', doc: 'GR', documentNumber: grn.grnNumber, poNumber: grn.poNumber, date: grn.receiveDate }), { width: 140, margin: 0 })
+      .then((url) => { if (active) setAuthQR(url); });
+    return () => { active = false; };
+  }, [grn]);
+
   const handlePrint = (event: React.MouseEvent<HTMLButtonElement>) => {
     void printDocument(event.currentTarget);
   };
@@ -409,6 +418,7 @@ export const GRNPrintModal: React.FC<GRNPrintModalProps> = ({ grn, onClose }) =>
                   </tr>
                 </tbody>
               </table>
+              {authQR && <div className="mt-2 flex items-center gap-2"><img src={authQR} alt={`QR ${grn.grnNumber}`} className="h-16 w-16" /><span className="max-w-28 text-[9px] leading-tight text-slate-500">Scan untuk cocokkan<br/><strong className="font-mono text-slate-800">{grn.grnNumber}</strong></span></div>}
             </div>
           </div>
 
@@ -528,6 +538,15 @@ interface PRPrintModalProps {
 }
 
 export const PRPrintModal: React.FC<PRPrintModalProps> = ({ pr, onClose }) => {
+  const [authQR, setAuthQR] = useState<string>('');
+
+  useEffect(() => {
+    let active = true;
+    generateQRCodeDataUrl(JSON.stringify({ app: 'kiri_supply', doc: 'PR', documentNumber: pr.prNumber, date: pr.requestDate }), { width: 140, margin: 0 })
+      .then((url) => { if (active) setAuthQR(url); });
+    return () => { active = false; };
+  }, [pr]);
+
   const handlePrint = (event: React.MouseEvent<HTMLButtonElement>) => {
     void printDocument(event.currentTarget);
   };
@@ -614,6 +633,7 @@ export const PRPrintModal: React.FC<PRPrintModalProps> = ({ pr, onClose }) => {
                   </tr>
                 </tbody>
               </table>
+              {authQR && <div className="mt-2 flex items-center gap-2"><img src={authQR} alt={`QR ${pr.prNumber}`} className="h-16 w-16" /><span className="max-w-28 text-[9px] leading-tight text-slate-500">Scan untuk cocokkan<br/><strong className="font-mono text-slate-800">{pr.prNumber}</strong></span></div>}
             </div>
           </div>
 
@@ -655,8 +675,8 @@ export const PRPrintModal: React.FC<PRPrintModalProps> = ({ pr, onClose }) => {
                   <th className="py-2.5 px-3 font-bold">Deskripsi & Nama Barang</th>
                   <th className="py-2.5 px-3 font-bold text-center w-16">Qty</th>
                   <th className="py-2.5 px-3 font-bold text-center w-20">Satuan</th>
-                  <th className="py-2.5 px-3 font-bold text-right w-28">Est. Harga Satuan</th>
-                  <th className="py-2.5 px-3 font-bold text-right w-32">Total Estimasi (Rp)</th>
+                  <th className="py-2.5 px-3 font-bold text-right w-28">Harga Supplier</th>
+                  <th className="py-2.5 px-3 font-bold text-right w-32">Subtotal (Rp)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -667,9 +687,9 @@ export const PRPrintModal: React.FC<PRPrintModalProps> = ({ pr, onClose }) => {
                     <td className="py-2.5 px-3 font-semibold text-slate-900">{item.itemName}</td>
                     <td className="py-2.5 px-3 text-center font-bold text-slate-900">{item.quantity}</td>
                     <td className="py-2.5 px-3 text-center text-slate-700">{item.unit}</td>
-                    <td className="py-2.5 px-3 text-right text-slate-700 font-mono">{formatRupiah(item.estimatedUnitPrice)}</td>
+                    <td className="py-2.5 px-3 text-right text-slate-700 font-mono">{pr.pricingStatus === 'harga_diterima' ? formatRupiah(item.estimatedUnitPrice) : '-'}</td>
                     <td className="py-2.5 px-3 text-right font-bold text-slate-900 font-mono">
-                      {formatRupiah(item.quantity * item.estimatedUnitPrice)}
+                      {pr.pricingStatus === 'harga_diterima' ? formatRupiah(item.quantity * item.estimatedUnitPrice) : '-'}
                     </td>
                   </tr>
                 ))}
@@ -677,10 +697,10 @@ export const PRPrintModal: React.FC<PRPrintModalProps> = ({ pr, onClose }) => {
               <tfoot>
                 <tr className="bg-slate-100 font-bold border-t-2 border-slate-300">
                   <td colSpan={6} className="py-2.5 px-3 text-right text-slate-800 uppercase">
-                    Total Estimasi Anggaran Pengadaan:
+                    {pr.pricingStatus === 'harga_diterima' ? `Penawaran ${pr.quotedSupplierName || 'Supplier'}:` : 'Status Harga:'}
                   </td>
                   <td className="py-2.5 px-3 text-right text-emerald-800 font-mono text-sm">
-                    {formatRupiah(pr.totalEstimatedAmount)}
+                    {pr.pricingStatus === 'harga_diterima' ? formatRupiah(pr.totalEstimatedAmount) : 'MENUNGGU PENAWARAN'}
                   </td>
                 </tr>
               </tfoot>
