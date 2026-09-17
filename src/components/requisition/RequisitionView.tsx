@@ -254,6 +254,15 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
     setPricingPR(null);
   };
 
+  if (isCreateModalOpen) {
+    return (
+      <CreateRequisitionStepperModal
+        isOpen={true}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header & Title */}

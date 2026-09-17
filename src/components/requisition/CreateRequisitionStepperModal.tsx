@@ -454,7 +454,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#f8f7f4] animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#f8f7f4] animate-in fade-in duration-200 md:relative md:inset-auto md:z-auto md:h-[calc(100dvh-8.5rem)] md:min-h-[680px] md:w-full md:rounded-2xl md:border md:border-[#dedcd5] md:shadow-sm">
       {/* Modal Container: Full Screen on Mobile, Rounded Card on Desktop */}
       <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#f8f7f4]">
         
@@ -655,7 +655,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         )}
 
         {/* SCROLLABLE FORM BODY */}
-        <div className="mx-auto w-full max-w-[1600px] flex-1 space-y-3 overflow-y-auto bg-[#f8f7f4] px-4 py-3 pb-28 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-[1600px] flex-1 space-y-3 overflow-y-auto bg-[#f8f7f4] px-4 py-3 pb-32 sm:px-6 md:pb-24 lg:px-8">
           
           {/* ======================================================== */}
           {/* STEP 1: DETAIL (INFORMASI PERMINTAAN)                    */}
@@ -1142,7 +1142,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         {/* ======================================================== */}
         {/* STICKY BOTTOM ACTION BAR (Matching user screenshot)      */}
         {/* ======================================================== */}
-        <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-end gap-3 border-t border-[#e3e1da] bg-white/95 px-4 py-3 shadow-[0_-10px_26px_rgba(35,35,30,.08)] backdrop-blur-lg sm:px-6 lg:px-8" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
+        <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 right-3 z-10 flex items-center justify-end gap-2.5 rounded-2xl border border-[#dedcd5] bg-white/95 p-2.5 shadow-[0_12px_34px_rgba(35,35,30,.22)] backdrop-blur-lg md:bottom-0 md:left-0 md:right-0 md:rounded-none md:border-x-0 md:border-b-0 md:px-8 md:py-3 md:shadow-[0_-10px_26px_rgba(35,35,30,.08)]">
           
           {/* STEP 1 ACTIONS */}
           {currentStep === 1 && (
