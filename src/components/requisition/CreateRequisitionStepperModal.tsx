@@ -454,9 +454,9 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#242424]/45 backdrop-blur-sm md:p-4 md:items-center md:justify-center overflow-hidden animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#f8f7f4] animate-in fade-in duration-200">
       {/* Modal Container: Full Screen on Mobile, Rounded Card on Desktop */}
-      <div className="flex flex-col w-full h-full md:max-w-3xl md:h-[94vh] md:max-h-[900px] bg-[#f8f7f4] md:rounded-[24px] shadow-2xl overflow-hidden relative border border-white/60">
+      <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#f8f7f4]">
         
         {/* TOP APP BAR / HEADER (Matching user screenshot) */}
         <div className="bg-white text-[#242424] px-4 py-3.5 flex items-center justify-between border-b border-[#e7e5e0] shrink-0 select-none">
@@ -655,7 +655,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         )}
 
         {/* SCROLLABLE FORM BODY */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 pb-28 space-y-3 bg-[#f8f7f4]">
+        <div className="mx-auto w-full max-w-[1600px] flex-1 space-y-3 overflow-y-auto bg-[#f8f7f4] px-4 py-3 pb-28 sm:px-6 lg:px-8">
           
           {/* ======================================================== */}
           {/* STEP 1: DETAIL (INFORMASI PERMINTAAN)                    */}
@@ -864,7 +864,9 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 </button>
               </div>
 
-              {/* Smart stock picker: choose first, edit quantity afterwards */}
+              <div className="grid items-start gap-3 xl:grid-cols-[minmax(320px,0.42fr)_minmax(0,1fr)]">
+                <div className="min-w-0 xl:sticky xl:top-0">
+                  {/* Smart stock picker: choose first, edit quantity afterwards */}
               <section className="overflow-hidden rounded-2xl border border-[#dfddd7] bg-[#faf9f6]">
                 <button
                   type="button"
@@ -917,9 +919,11 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                     <button type="button" onClick={handleApplyStockSelection} className="min-h-10 rounded-xl bg-[#252525] px-4 text-xs font-semibold text-white"><span className="text-[#82dd70]">Apply</span> ke PR</button>
                   </div>
                 </div>}
-              </section>
+                </section>
+                </div>
 
-              {/* Compact item list: dense by default, full controls stay touch-friendly */}
+                <div className="min-w-0 space-y-2">
+                  {/* Compact item list: dense by default, full controls stay touch-friendly */}
               <div className="space-y-2">
                 {items.map((item, index) => {
                   const itemKey = item.id || String(index);
@@ -995,6 +999,8 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                   </span>
                 </div>
                 <span className="text-xs font-bold text-[#795f22]">{items.length} barang</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1136,7 +1142,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         {/* ======================================================== */}
         {/* STICKY BOTTOM ACTION BAR (Matching user screenshot)      */}
         {/* ======================================================== */}
-        <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur-lg border-t border-[#e3e1da] px-4 sm:px-6 py-3 shadow-[0_-10px_26px_rgba(35,35,30,.08)] flex items-center gap-3 z-10" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
+        <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-end gap-3 border-t border-[#e3e1da] bg-white/95 px-4 py-3 shadow-[0_-10px_26px_rgba(35,35,30,.08)] backdrop-blur-lg sm:px-6 lg:px-8" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
           
           {/* STEP 1 ACTIONS */}
           {currentStep === 1 && (
@@ -1144,7 +1150,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               <button
                 type="button"
                 onClick={() => handleSavePR('draft')}
-                className="flex-1 py-3 px-3 border-2 border-emerald-600 active:bg-emerald-50 text-emerald-800 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition"
+                className="flex-1 py-3 px-3 border-2 border-emerald-600 md:flex-none md:min-w-44 active:bg-emerald-50 text-emerald-800 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition"
               >
                 <Save className="w-4 h-4 text-emerald-700" />
                 <span>Simpan Draft</span>
@@ -1153,7 +1159,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               <button
                 type="button"
                 onClick={handleNextToStep2}
-                className="flex-[1.4] py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99]"
+                className="flex-[1.4] py-3 px-4 bg-emerald-600 md:flex-none md:min-w-52 md:flex-none md:min-w-52 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99]"
               >
                 <span>Lanjut ke Detail</span>
                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -1167,7 +1173,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className="flex-1 py-3 px-3 border border-slate-300 active:bg-slate-100 text-slate-700 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition"
+                className="flex-1 py-3 px-3 border border-slate-300 md:flex-none md:min-w-40 md:flex-none md:min-w-40 active:bg-slate-100 text-slate-700 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Kembali</span>
@@ -1200,7 +1206,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 type="button"
                 disabled={!confirmedAgreement}
                 onClick={() => handleSavePR('menunggu_persetujuan')}
-                className={`flex-[1.5] py-3 px-4 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99] ${
+                className={`flex-[1.5] py-3 px-4 text-white md:flex-none md:min-w-56 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99] ${
                   confirmedAgreement
                     ? 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800'
                     : 'bg-slate-400 cursor-not-allowed opacity-70'
