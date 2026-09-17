@@ -7,6 +7,10 @@ export const STORAGE_KEYS = {
   POS: 'kiri_purchase_orders',
   GRNS: 'kiri_goods_receipts',
   MOVEMENTS: 'kiri_stock_movements',
+  OPNAMES: 'kiri_stock_opnames',
+  TRANSFERS: 'kiri_store_transfers',
+  WAREHOUSES: 'kiri_warehouses',
+  CATEGORIES: 'kiri_inventory_categories',
 } as const;
 
 export type CloudSnapshot = Record<(typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS], unknown[]>;

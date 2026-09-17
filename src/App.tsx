@@ -17,6 +17,8 @@ import { CloudSync } from './components/common/CloudSync';
 import { PurchaseRequisition, PurchaseOrder, WarehouseItem } from './types';
 import { useAuth } from './components/auth/AuthContext';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { StockOpnameView } from './components/opname/StockOpnameView';
+import { StoreTransferView } from './components/transfer/StoreTransferView';
 import { canScanWarehouse, ROLE_TABS } from './lib/permissions';
 
 const MainContent: React.FC = () => {
@@ -148,6 +150,8 @@ const MainContent: React.FC = () => {
         )}
 
         {activeTab === 'suppliers' && <SupplierView />}
+        {activeTab === 'stock_opname' && <StockOpnameView />}
+        {activeTab === 'store_transfers' && <StoreTransferView />}
       </main>
 
       {/* Mobile Ergonomic Bottom Navigation Bar with Floating Scan QR button */}

@@ -10,6 +10,10 @@ import {
   POStatus,
   StockCondition,
   ActiveTab,
+  StockOpname,
+  StoreTransfer,
+  WarehouseConfig,
+  InventoryCategory,
 } from '../types';
 import {
   INITIAL_ITEMS,
@@ -40,6 +44,10 @@ interface PurchasingContextType {
   purchaseOrders: PurchaseOrder[];
   goodsReceipts: GoodsReceipt[];
   stockMovements: StockMovement[];
+  stockOpnames: StockOpname[];
+  storeTransfers: StoreTransfer[];
+  warehouses: WarehouseConfig[];
+  inventoryCategories: InventoryCategory[];
 
   // Warehouse Item Actions
   addItem: (item: Omit<WarehouseItem, 'id' | 'updatedAt'>) => WarehouseItem;
@@ -81,6 +89,10 @@ interface PurchasingContextType {
   ) => GoodsReceipt;
   deleteGRN: (id: string) => void;
 
+  createStockOpname: (data: Omit<StockOpname, 'id' | 'opnameNumber' | 'createdAt' | 'status'>) => StockOpname;
+  createStoreTransfer: (data: Omit<StoreTransfer, 'id' | 'transferNumber' | 'createdAt' | 'status'>) => StoreTransfer | null;
+  confirmStoreTransfer: (id: string, receivedBy: string) => void;
+
   // Analytics Helpers
   getLowStockItems: () => WarehouseItem[];
   getPendingPRsCount: () => number;
@@ -103,7 +115,23 @@ const STORAGE_KEYS = {
   POS: 'kiri_purchase_orders',
   GRNS: 'kiri_goods_receipts',
   MOVEMENTS: 'kiri_stock_movements',
+  OPNAMES: 'kiri_stock_opnames',
+  TRANSFERS: 'kiri_store_transfers',
+  WAREHOUSES: 'kiri_warehouses',
+  CATEGORIES: 'kiri_inventory_categories',
 };
+
+const DEFAULT_WAREHOUSES: WarehouseConfig[] = [
+  { id: 'wh-jkt', code: 'JKT', name: 'Warehouse Jakarta', type: 'warehouse', city: 'Jakarta', isActive: true },
+  { id: 'wh-aceh', code: 'ACH', name: 'Warehouse Aceh', type: 'warehouse', city: 'Banda Aceh', isActive: true },
+  { id: 'wh-roti', code: 'RTI', name: 'Warehouse Roti', type: 'warehouse', city: 'Banda Aceh', isActive: true },
+  { id: 'store-bintaro', code: 'BTR', name: 'Bintaro', type: 'store', city: 'Tangerang Selatan', isActive: true },
+  { id: 'store-graha', code: 'GRH', name: 'Graha Raya', type: 'store', city: 'Tangerang', isActive: true },
+  { id: 'store-tmp', code: 'TMP', name: 'TMP', type: 'store', city: 'Banda Aceh', isActive: true },
+  { id: 'store-lamteh', code: 'LMT', name: 'Lamteh', type: 'store', city: 'Banda Aceh', isActive: true },
+  { id: 'store-batoh', code: 'BTH', name: 'Batoh', type: 'store', city: 'Banda Aceh', isActive: true },
+  { id: 'store-roti', code: 'SRT', name: 'Store Roti Kiri', type: 'store', city: 'Banda Aceh', isActive: true },
+];
 
 const PurchasingContext = createContext<PurchasingContextType | undefined>(undefined);
 
@@ -123,6 +151,8 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         localStorage.removeItem(STORAGE_KEYS.POS);
         localStorage.removeItem(STORAGE_KEYS.GRNS);
         localStorage.removeItem(STORAGE_KEYS.MOVEMENTS);
+        localStorage.removeItem(STORAGE_KEYS.OPNAMES);
+        localStorage.removeItem(STORAGE_KEYS.TRANSFERS);
       }
     } catch {
       // ignore
@@ -163,6 +193,23 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : INITIAL_STOCK_MOVEMENTS;
   });
 
+  const [stockOpnames, setStockOpnames] = useState<StockOpname[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.OPNAMES);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [storeTransfers, setStoreTransfers] = useState<StoreTransfer[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.TRANSFERS);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [warehouses] = useState<WarehouseConfig[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.WAREHOUSES);
+    return saved ? JSON.parse(saved) : DEFAULT_WAREHOUSES;
+  });
+  const [inventoryCategories] = useState<InventoryCategory[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+    return saved ? JSON.parse(saved) : [];
+  });
+
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(items));
@@ -187,6 +234,10 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify(stockMovements));
   }, [stockMovements]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.OPNAMES, JSON.stringify(stockOpnames)); }, [stockOpnames]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(storeTransfers)); }, [storeTransfers]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.WAREHOUSES, JSON.stringify(warehouses)); }, [warehouses]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(inventoryCategories)); }, [inventoryCategories]);
 
   // ID generators
   const generatePRNumber = () => {
@@ -710,6 +761,52 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
+  const createStockOpname = (data: Omit<StockOpname, 'id' | 'opnameNumber' | 'createdAt' | 'status'>): StockOpname => {
+    const now = new Date();
+    const opnameNumber = `SO-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(stockOpnames.length + 1).padStart(3, '0')}`;
+    const completed: StockOpname = { ...data, id: `opname-${Date.now()}`, opnameNumber, status: 'selesai', createdAt: now.toISOString() };
+    const movements: StockMovement[] = [];
+    setItems((current) => current.map((item) => {
+      const line = data.lines.find((entry) => entry.itemId === item.id);
+      if (!line || line.physicalStock === item.currentStock) return item;
+      movements.push({ id: `mov-op-${Date.now()}-${item.id}`, itemId: item.id, itemSku: item.sku, itemName: item.name, type: 'opname_adjustment', quantity: line.physicalStock - item.currentStock, previousStock: item.currentStock, newStock: line.physicalStock, referenceNo: opnameNumber, date: now.toISOString(), notes: line.notes || `Penyesuaian stock opname ${data.template}`, operator: data.countedBy });
+      return { ...item, currentStock: line.physicalStock, updatedAt: now.toISOString() };
+    }));
+    if (movements.length) setStockMovements((current) => [...movements, ...current]);
+    setStockOpnames((current) => [completed, ...current]);
+    void recordActivity('stock', 'opname', completed.id, `Menyelesaikan ${opnameNumber}`, { warehouse: data.warehouseName, lines: data.lines.length });
+    return completed;
+  };
+
+  const createStoreTransfer = (data: Omit<StoreTransfer, 'id' | 'transferNumber' | 'createdAt' | 'status'>): StoreTransfer | null => {
+    const insufficient = data.items.find((entry) => (items.find((item) => item.id === entry.itemId)?.currentStock || 0) < entry.quantity);
+    if (insufficient) {
+      alert(`Stok ${insufficient.itemName} tidak cukup untuk transfer.`);
+      return null;
+    }
+    const now = new Date();
+    const transferNumber = `TRF-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(storeTransfers.length + 1).padStart(3, '0')}`;
+    const transfer: StoreTransfer = { ...data, id: `transfer-${Date.now()}`, transferNumber, status: 'dikirim', createdAt: now.toISOString() };
+    const movements: StockMovement[] = [];
+    setItems((current) => current.map((item) => {
+      const line = data.items.find((entry) => entry.itemId === item.id);
+      if (!line) return item;
+      const nextStock = item.currentStock - line.quantity;
+      movements.push({ id: `mov-trf-${Date.now()}-${item.id}`, itemId: item.id, itemSku: item.sku, itemName: item.name, type: 'transfer_keluar', quantity: -line.quantity, previousStock: item.currentStock, newStock: nextStock, referenceNo: transferNumber, date: now.toISOString(), notes: `Dikirim ke ${data.destinationStoreName}. Belum menjadi stok store sampai dikonfirmasi.`, operator: data.sentBy });
+      return { ...item, currentStock: nextStock, updatedAt: now.toISOString() };
+    }));
+    setStockMovements((current) => [...movements, ...current]);
+    setStoreTransfers((current) => [transfer, ...current]);
+    void recordActivity('stock', 'transfer', transfer.id, `Mengirim ${transferNumber} ke ${data.destinationStoreName}`, { items: data.items.length });
+    return transfer;
+  };
+
+  const confirmStoreTransfer = (id: string, receivedBy: string) => {
+    setStoreTransfers((current) => current.map((transfer) => transfer.id === id ? { ...transfer, status: 'diterima', receivedBy, receivedAt: new Date().toISOString() } : transfer));
+    const transfer = storeTransfers.find((entry) => entry.id === id);
+    void recordActivity('status', 'transfer', id, `Konfirmasi penerimaan ${transfer?.transferNumber || id}`, { receivedBy });
+  };
+
   // Analytics Helpers
   const getLowStockItems = () => {
     return items.filter((item) => item.currentStock <= item.minStock);
@@ -842,6 +939,8 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       if (Array.isArray(backupData.purchaseOrders)) setPurchaseOrders(backupData.purchaseOrders);
       if (Array.isArray(backupData.goodsReceipts)) setGoodsReceipts(backupData.goodsReceipts);
       if (Array.isArray(backupData.stockMovements)) setStockMovements(backupData.stockMovements);
+      if (Array.isArray(backupData.stockOpnames)) setStockOpnames(backupData.stockOpnames);
+      if (Array.isArray(backupData.storeTransfers)) setStoreTransfers(backupData.storeTransfers);
 
       void recordActivity('import', 'backup', null, 'Memulihkan backup database aplikasi');
       alert('Restore backup database berhasil diselesaikan.');
@@ -861,6 +960,10 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       purchaseOrders,
       goodsReceipts,
       stockMovements,
+      stockOpnames,
+      storeTransfers,
+      warehouses,
+      inventoryCategories,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -884,6 +987,10 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         purchaseOrders,
         goodsReceipts,
         stockMovements,
+        stockOpnames,
+        storeTransfers,
+        warehouses,
+        inventoryCategories,
         addItem,
         updateItem,
         deleteItem,
@@ -903,6 +1010,9 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         deletePO,
         createGoodsReceipt,
         deleteGRN,
+        createStockOpname,
+        createStoreTransfer,
+        confirmStoreTransfer,
         getLowStockItems,
         getPendingPRsCount,
         getActivePOsCount,

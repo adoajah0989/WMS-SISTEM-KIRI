@@ -38,6 +38,7 @@ import { DataCenterModal } from '../common/DataCenterModal';
 import { ItemQRQuickModal } from '../rack/ItemQRQuickModal';
 import { ComprehensiveReportModal } from '../common/PrintTemplates';
 import { generateQRCodeDataUrl, generateRackQRPayload } from '../../utils/qrGenerator';
+import { StockRiskReportModal } from './StockRiskReportModal';
 import {
   getAverageUnitCost,
   getInventoryValue,
@@ -69,6 +70,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
     deleteItem,
     adjustStock,
     getInventoryAssetValue,
+    inventoryCategories,
   } = usePurchasing();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,6 +84,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
   const [isDataCenterOpen, setIsDataCenterOpen] = useState(false);
   const [dataCenterTab, setDataCenterTab] = useState<'backup_restore' | 'import_items' | 'import_suppliers' | 'export_reports'>('import_items');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isRiskReportOpen, setIsRiskReportOpen] = useState(false);
   const [reportModalType, setReportModalType] = useState<'stock_valuation' | 'stock_audit' | 'po_summary' | 'grn_summary'>('stock_valuation');
   const [editingItem, setEditingItem] = useState<WarehouseItem | null>(null);
   const [selectedItemForAdjust, setSelectedItemForAdjust] = useState<WarehouseItem | null>(null);
@@ -113,7 +116,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
   const [adjustOperator, setAdjustOperator] = useState('Staff Gudang');
 
   // Categories
-  const categories = [
+  const defaultCategories = [
     'Bahan Baku & Kimia Industri',
     'Kemasan & Packaging',
     'Suku Cadang & Sparepart',
@@ -121,6 +124,8 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
     'Elektrikal & IT Hardware',
     'Lain-lain',
   ];
+  const categories = inventoryCategories.filter((category) => category.isActive).map((category) => category.name);
+  const categoryOptions = categories.length ? categories : defaultCategories;
 
   // Dynamic live QR code for the Add/Edit form
   useEffect(() => {
@@ -357,7 +362,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
           </div>
 
           {/* Row 2: Secondary Utility Tools (Clean & Unified Styling) */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1.5 bg-slate-50/90 rounded-xl border border-slate-200/80">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5 p-1.5 bg-slate-50/90 rounded-xl border border-slate-200/80">
             {onOpenPrintLabel && (
               <button
                 onClick={() => onOpenPrintLabel()}
@@ -380,6 +385,8 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
               <FileText className="w-3.5 h-3.5 text-sky-600 shrink-0" />
               <span className="truncate">Opname PDF</span>
             </button>
+
+            <button onClick={() => setIsRiskReportOpen(true)} className="flex min-h-[36px] items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-100 sm:text-xs" title="Atur dan cetak laporan stok menipis, sekarat, atau kosong"><AlertTriangle className="h-3.5 w-3.5 text-rose-600"/><span className="truncate">Laporan Kritis</span></button>
 
             <button
               onClick={() => {
@@ -521,7 +528,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
               className="text-xs border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-slate-700 h-[38px]"
             >
               <option value="all">Semua Kategori</option>
-              {categories.map((cat) => (
+              {categoryOptions.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
@@ -950,7 +957,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                         onChange={(e) => setFormCategory(e.target.value)}
                         className="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 text-xs focus:ring-2 focus:ring-emerald-500/30"
                       >
-                        {categories.map((cat) => (
+                        {categoryOptions.map((cat) => (
                           <option key={cat} value={cat}>
                             {cat}
                           </option>
@@ -1382,6 +1389,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
           goodsReceipts={goodsReceipts}
         />
       )}
+      {isRiskReportOpen && <StockRiskReportModal items={items} onClose={() => setIsRiskReportOpen(false)} />}
     </div>
   );
 };

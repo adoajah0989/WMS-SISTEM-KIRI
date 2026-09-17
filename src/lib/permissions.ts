@@ -10,10 +10,10 @@ export const ROLE_LABELS: Record<AppRole, string> = {
 };
 
 export const ROLE_TABS: Record<AppRole, ActiveTab[]> = {
-  master: ['dashboard', 'requisitions', 'purchase_orders', 'goods_receipts', 'warehouse', 'suppliers'],
-  manajer: ['dashboard', 'requisitions', 'purchase_orders', 'goods_receipts', 'warehouse', 'suppliers'],
+  master: ['dashboard', 'requisitions', 'purchase_orders', 'goods_receipts', 'warehouse', 'stock_opname', 'store_transfers', 'suppliers'],
+  manajer: ['dashboard', 'requisitions', 'purchase_orders', 'goods_receipts', 'warehouse', 'stock_opname', 'store_transfers', 'suppliers'],
   purchasing: ['dashboard', 'requisitions', 'purchase_orders', 'suppliers'],
-  warehouse: ['dashboard', 'requisitions', 'goods_receipts', 'warehouse'],
+  warehouse: ['dashboard', 'requisitions', 'goods_receipts', 'warehouse', 'stock_opname', 'store_transfers'],
   viewer: ['dashboard'],
 };
 
