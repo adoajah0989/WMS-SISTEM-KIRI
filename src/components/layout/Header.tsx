@@ -12,6 +12,8 @@ const PAGE_TITLES = {
   purchase_orders: ['Purchase order', 'Pantau pemesanan dan konfirmasi supplier'],
   goods_receipts: ['Penerimaan barang', 'Cocokkan barang masuk dengan PO'],
   warehouse: ['Stok gudang', 'Kontrol stok, lokasi rak, dan pergerakan barang'],
+  stock_opname: ['Stock opname', 'Template harian, bulanan, rak, dan kategori'],
+  store_transfers: ['Transfer store', 'Pisahkan barang dikirim dan diterima'],
   suppliers: ['Supplier', 'Data vendor dan syarat pembayaran'],
 } as const;
 
