@@ -18,6 +18,7 @@ import {
   Layers,
   FileCheck,
   Printer,
+  BadgeDollarSign,
 } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { PurchaseRequisition, PRItem, PRStatus, PriorityLevel } from '../../types';
@@ -51,6 +52,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
     items: warehouseItems,
     suppliers,
     createPR,
+    updatePR,
     updatePRStatus,
     deletePR,
   } = usePurchasing();
@@ -66,6 +68,10 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
   const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
   const [approverName, setApproverName] = useState('Manajer Operasional');
   const [rejectReason, setRejectReason] = useState('');
+  const [pricingPR, setPricingPR] = useState<PurchaseRequisition | null>(null);
+  const [pricingSupplierId, setPricingSupplierId] = useState('');
+  const [quotationNumber, setQuotationNumber] = useState('');
+  const [quotedItems, setQuotedItems] = useState<PRItem[]>([]);
 
   // Form State for Creating PR
   const [formDepartment, setFormDepartment] = useState('Gudang & Logistik');
@@ -216,6 +222,38 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
     setRejectReason('');
   };
 
+  const openSupplierPricing = (pr: PurchaseRequisition) => {
+    setPricingPR(pr);
+    setPricingSupplierId(pr.quotedSupplierId || suppliers[0]?.id || '');
+    setQuotationNumber(pr.quotationNumber || '');
+    setQuotedItems(pr.items.map((item) => ({ ...item, estimatedUnitPrice: pr.pricingStatus === 'harga_diterima' ? item.estimatedUnitPrice : 0 })));
+  };
+
+  const handleSaveSupplierPricing = () => {
+    if (!pricingPR) return;
+    const supplier = suppliers.find((item) => item.id === pricingSupplierId);
+    if (!supplier) {
+      alert('Pilih supplier yang memberikan penawaran harga.');
+      return;
+    }
+    if (quotedItems.some((item) => !item.estimatedUnitPrice || item.estimatedUnitPrice <= 0)) {
+      alert('Lengkapi harga penawaran untuk seluruh barang.');
+      return;
+    }
+    const totalEstimatedAmount = quotedItems.reduce((sum, item) => sum + item.quantity * item.estimatedUnitPrice, 0);
+    updatePR(pricingPR.id, {
+      items: quotedItems,
+      totalEstimatedAmount,
+      pricingStatus: 'harga_diterima',
+      quotedSupplierId: supplier.id,
+      quotedSupplierName: supplier.name,
+      quotationNumber: quotationNumber.trim() || undefined,
+      quotedAt: new Date().toISOString(),
+      pricedBy: profile.fullName || profile.email || 'Purchasing',
+    });
+    setPricingPR(null);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header & Title */}
@@ -352,7 +390,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                         <span className="font-semibold text-slate-700">{pr.items.length} Item</span>
                       </td>
                       <td className="py-3.5 px-4 text-right font-bold text-slate-900">
-                        {formatRupiah(pr.totalEstimatedAmount)}
+                        {pr.pricingStatus === 'harga_diterima' ? formatRupiah(pr.totalEstimatedAmount) : <span className="text-[10px] font-semibold text-amber-700">Belum ada harga</span>}
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span
@@ -411,14 +449,8 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
 
                           {/* Convert to PO for Approved PRs */}
                           {pr.status === 'disetujui' && canConvert && (
-                            <button
-                              onClick={() => onConvertToPOFromPR(pr)}
-                              className="px-2.5 py-1 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition shadow-xs flex items-center gap-1"
-                              title="Terbitkan Purchase Order dari PR ini"
-                            >
-                              <FileCheck className="w-3.5 h-3.5" />
-                              Terbitkan PO
-                            </button>
+                            pr.pricingStatus === 'harga_diterima' ? <button onClick={() => onConvertToPOFromPR(pr)} className="px-2.5 py-1 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition shadow-xs flex items-center gap-1" title="Terbitkan Purchase Order dari PR ini"><FileCheck className="w-3.5 h-3.5" />Terbitkan PO</button>
+                              : <button onClick={() => openSupplierPricing(pr)} className="px-2.5 py-1 text-xs font-semibold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg transition flex items-center gap-1" title="Masukkan penawaran harga supplier"><BadgeDollarSign className="w-3.5 h-3.5" />Input Harga</button>
                           )}
 
                           {/* Delete if draft or rejected */}
@@ -502,7 +534,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                 <div className="bg-slate-50 p-2.5 rounded-lg flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">{pr.items.length} Item barang</span>
                   <span className="font-bold text-slate-900 text-sm">
-                    {formatRupiah(pr.totalEstimatedAmount)}
+                    {pr.pricingStatus === 'harga_diterima' ? formatRupiah(pr.totalEstimatedAmount) : 'Harga setelah approval'}
                   </span>
                 </div>
 
@@ -550,13 +582,8 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                   )}
 
                   {pr.status === 'disetujui' && canConvert && (
-                    <button
-                      onClick={() => onConvertToPOFromPR(pr)}
-                      className="flex-1 py-2.5 px-3 bg-indigo-600 active:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 min-h-[42px] shadow-2xs"
-                    >
-                      <FileCheck className="w-3.5 h-3.5" />
-                      Buat PO
-                    </button>
+                    pr.pricingStatus === 'harga_diterima' ? <button onClick={() => onConvertToPOFromPR(pr)} className="flex-1 py-2.5 px-3 bg-indigo-600 active:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 min-h-[42px] shadow-2xs"><FileCheck className="w-3.5 h-3.5" />Buat PO</button>
+                      : <button onClick={() => openSupplierPricing(pr)} className="flex-1 py-2.5 px-3 bg-amber-50 active:bg-amber-100 border border-amber-200 text-amber-800 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 min-h-[42px]"><BadgeDollarSign className="w-3.5 h-3.5" />Input Harga</button>
                   )}
 
                   {(pr.status === 'draft' || pr.status === 'ditolak') && (
@@ -919,9 +946,9 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
                           <td className="p-2.5 text-center font-bold text-slate-800">
                             {item.quantity} {item.unit}
                           </td>
-                          <td className="p-2.5 text-right text-slate-600">{formatRupiah(item.estimatedUnitPrice)}</td>
+                          <td className="p-2.5 text-right text-slate-600">{selectedPR.pricingStatus === 'harga_diterima' ? formatRupiah(item.estimatedUnitPrice) : '-'}</td>
                           <td className="p-2.5 text-right font-semibold text-slate-900">
-                            {formatRupiah(item.quantity * item.estimatedUnitPrice)}
+                            {selectedPR.pricingStatus === 'harga_diterima' ? formatRupiah(item.quantity * item.estimatedUnitPrice) : '-'}
                           </td>
                         </tr>
                       ))}
@@ -931,7 +958,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
 
                 <div className="mt-2 text-right">
                   <span className="text-slate-500 font-medium mr-2">Total Estimasi:</span>
-                  <span className="font-bold text-emerald-800 text-sm">{formatRupiah(selectedPR.totalEstimatedAmount)}</span>
+                  <span className="font-bold text-emerald-800 text-sm">{selectedPR.pricingStatus === 'harga_diterima' ? formatRupiah(selectedPR.totalEstimatedAmount) : 'Menunggu harga supplier'}</span>
                 </div>
               </div>
 
@@ -969,6 +996,34 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
               >
                 Tutup
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pricingPR && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#242424]/55 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-t-[24px] bg-[#f8f7f4] shadow-2xl sm:rounded-[24px]">
+            <div className="flex items-center justify-between border-b border-[#e5e3dd] bg-white px-4 py-3.5">
+              <div><h3 className="text-sm font-bold text-[#292929]">Penawaran Harga Supplier</h3><p className="mt-0.5 text-[10px] text-[#85847e]">{pricingPR.prNumber} · setelah approval</p></div>
+              <button onClick={() => setPricingPR(null)} className="min-h-10 min-w-10 rounded-xl text-[#777]">✕</button>
+            </div>
+            <div className="space-y-3 overflow-y-auto p-4 pb-28">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <div><label className="mb-1 block text-[11px] font-semibold text-[#555]">Supplier *</label><select value={pricingSupplierId} onChange={(event) => setPricingSupplierId(event.target.value)} className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs font-semibold text-[#333]"><option value="">Pilih supplier...</option>{suppliers.filter((supplier) => supplier.isActive).map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
+                <div><label className="mb-1 block text-[11px] font-semibold text-[#555]">No. penawaran supplier</label><input value={quotationNumber} onChange={(event) => setQuotationNumber(event.target.value)} placeholder="Opsional" className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs text-[#333]" /></div>
+              </div>
+              <div className="rounded-xl bg-[#fff4d6] p-3 text-[11px] leading-relaxed text-[#795f22]">Isi harga sesuai satuan pembelian. Harga ini akan otomatis dibawa ke PO.</div>
+              <div className="space-y-2">
+                {quotedItems.map((item, index) => <div key={item.id} className="rounded-2xl border border-[#dfddd7] bg-white p-3">
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-xs font-bold text-[#292929]">{item.itemName}</p><p className="mt-0.5 text-[10px] text-[#85847e]">{item.sku || 'Tanpa SKU'} · {item.quantity} {item.unit}</p></div><span className="text-[10px] text-[#85847e]">#{index + 1}</span></div>
+                  <div className="mt-2 grid grid-cols-[1fr_auto] items-end gap-2"><div><label className="mb-1 block text-[10px] font-medium text-[#666]">Harga per {item.unit}</label><NumberInput type="number" min="0" value={item.estimatedUnitPrice || ''} onChange={(event) => setQuotedItems((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, estimatedUnitPrice: parseFloat(event.target.value) || 0 } : row))} placeholder="Rp 0" className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-sm font-semibold text-[#292929]" /></div><strong className="min-w-28 pb-3 text-right text-xs text-[#292929]">{formatRupiah(item.quantity * (item.estimatedUnitPrice || 0))}</strong></div>
+                </div>)}
+              </div>
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 flex gap-2 border-t border-[#e5e3dd] bg-white/95 p-4 backdrop-blur sm:static">
+              <button onClick={() => setPricingPR(null)} className="min-h-11 flex-1 rounded-xl border border-[#d8d6cf] bg-white text-xs font-semibold text-[#555]">Batal</button>
+              <button onClick={handleSaveSupplierPricing} className="min-h-11 flex-[1.5] rounded-xl bg-[#252525] text-xs font-semibold text-white">Simpan Penawaran Harga</button>
             </div>
           </div>
         </div>

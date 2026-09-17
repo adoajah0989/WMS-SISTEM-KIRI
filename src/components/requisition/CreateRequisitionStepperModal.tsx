@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { PRItem, PriorityLevel, WarehouseItem, PRStatus } from '../../types';
-import { formatRupiah, formatDate } from '../../utils/formatters';
+import { formatDate } from '../../utils/formatters';
 import { useAuth } from '../auth/AuthContext';
 
 interface CreateRequisitionStepperModalProps {
@@ -146,7 +146,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           category: initialItem.category || 'Sparepart & Maintenance',
           unit: initialItem.unit || 'Pcs',
           quantity: Math.max(1, (initialItem.minStock * 2) - initialItem.currentStock),
-          estimatedUnitPrice: initialItem.lastPurchasePrice || 0,
+          estimatedUnitPrice: 0,
           notes: `Stok saat ini ${initialItem.currentStock} ${initialItem.unit} (Min: ${initialItem.minStock})`,
         },
       ]);
@@ -156,10 +156,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   if (!isOpen) return null;
 
   // Calculation helpers
-  const totalEstimatedAmount = items.reduce(
-    (sum, item) => sum + (item.quantity || 0) * (item.estimatedUnitPrice || 0),
-    0
-  );
+  const totalEstimatedAmount = 0;
 
   // Step 1 Validation
   const validateStep1 = (): boolean => {
@@ -284,7 +281,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 itemName: found.name,
                 category: found.category || it.category,
                 unit: found.unit || it.unit,
-                estimatedUnitPrice: found.lastPurchasePrice || it.estimatedUnitPrice || 0,
+                estimatedUnitPrice: 0,
               }
             : it
         )
@@ -315,7 +312,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         stockUnit: item.unit,
         conversionRatio: item.conversionRatio || 1,
         quantity: Math.max(1, Math.ceil(((item.minStock * 2) - item.currentStock) / Math.max(item.conversionRatio || 1, 1))),
-        estimatedUnitPrice: item.lastPurchasePrice || 0,
+        estimatedUnitPrice: 0,
         notes: `Otomatis dari stok: ${item.currentStock} ${item.unit}, minimum ${item.minStock} ${item.unit}`,
       }));
       return [...populated, ...additions];
@@ -352,7 +349,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           category: item1.category,
           unit: item1.unit,
           quantity: 50,
-          estimatedUnitPrice: item1.lastPurchasePrice || 25000,
+          estimatedUnitPrice: 0,
           notes: 'Kualitas grade A',
         },
         {
@@ -363,7 +360,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           category: item2.category,
           unit: item2.unit,
           quantity: 20,
-          estimatedUnitPrice: item2.lastPurchasePrice || 120000,
+          estimatedUnitPrice: 0,
           notes: 'Tambahan buffer stok',
         },
       ]);
@@ -375,7 +372,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           category: 'Kemasan & Packaging',
           unit: 'Pcs',
           quantity: 200,
-          estimatedUnitPrice: 7500,
+          estimatedUnitPrice: 0,
           notes: 'Bahan double wall tebal',
         },
         {
@@ -384,7 +381,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           category: 'Kemasan & Packaging',
           unit: 'Roll',
           quantity: 36,
-          estimatedUnitPrice: 14000,
+          estimatedUnitPrice: 0,
           notes: 'Merek Daimaru atau setara',
         },
       ]);
@@ -955,14 +952,14 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                       </div>
 
                       <div className="mt-3 flex items-center justify-between border-t border-[#eceae5] pt-3">
-                        <span className="text-[11px] text-[#77766f]">Estimasi subtotal</span>
-                        <strong className="text-sm tabular-nums text-[#292929]">{formatRupiah((item.quantity || 0) * (item.estimatedUnitPrice || 0))}</strong>
+                        <span className="text-[11px] text-[#77766f]">Harga supplier</span>
+                        <strong className="rounded-lg bg-[#fff4d6] px-2 py-1 text-[10px] text-[#8c6417]">Diisi setelah approval</strong>
                       </div>
 
                       <button type="button" onClick={() => toggleItemDetails(itemKey)} className="mt-1 flex min-h-10 w-full items-center gap-1.5 text-left text-xs font-medium text-[#65645f]">
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         {isExpanded ? 'Tutup detail' : 'Detail lainnya'}
-                        {!isExpanded && <span className="text-[10px] font-normal text-[#9a9892]">· stok, harga, catatan</span>}
+                        {!isExpanded && <span className="text-[10px] font-normal text-[#9a9892]">· stok dan catatan</span>}
                       </button>
 
                       {isExpanded && <div className="space-y-3 border-t border-[#eceae5] pt-3">
@@ -977,10 +974,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                           <div><label className="mb-1 block text-[11px] font-semibold text-[#444]">Nama barang *</label><input type="text" required value={item.itemName} onChange={(e) => handleUpdateItem(index, 'itemName', e.target.value)} placeholder="Nama barang" className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-sm font-semibold text-[#292929]" /></div>
                           <div><label className="mb-1 block text-[11px] font-semibold text-[#666]">Kategori</label><select value={item.category} onChange={(e) => handleUpdateItem(index, 'category', e.target.value)} className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs text-[#555]">{ITEM_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></div>
                         </div>
-                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                          <div><label className="mb-1 block text-[11px] font-semibold text-[#666]">Estimasi harga / {item.unit}</label><NumberInput type="number" min="0" value={item.estimatedUnitPrice || ''} onChange={(e) => handleUpdateItem(index, 'estimatedUnitPrice', parseFloat(e.target.value) || 0)} placeholder="Rp 0" className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-sm font-medium text-[#292929]" /></div>
-                          <div className="rounded-xl bg-[#f5f4f0] px-3 py-2.5"><span className="block text-[10px] text-[#85847e]">Stok saat ini</span><strong className="mt-0.5 block text-xs text-[#444]">{stockItem ? `${stockItem.currentStock} ${stockItem.unit} · minimum ${stockItem.minStock}` : 'Tidak terhubung ke stok'}</strong></div>
-                        </div>
+                        <div className="rounded-xl bg-[#f5f4f0] px-3 py-2.5"><span className="block text-[10px] text-[#85847e]">Stok saat ini</span><strong className="mt-0.5 block text-xs text-[#444]">{stockItem ? `${stockItem.currentStock} ${stockItem.unit} · minimum ${stockItem.minStock}` : 'Tidak terhubung ke stok'}</strong></div>
                         <input type="text" value={item.notes || ''} onChange={(e) => handleUpdateItem(index, 'notes', e.target.value)} placeholder="Spesifikasi / merk (opsional)" className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs text-[#555]" />
                       </div>}
                     </div>
@@ -988,19 +982,16 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 })}
               </div>
 
-              {/* Step 2 Grand Total Card */}
-              <div className="p-3.5 bg-emerald-50/90 rounded-2xl border border-emerald-200/80 flex items-center justify-between">
+              <div className="p-3.5 bg-[#fff7df] rounded-2xl border border-[#ead9a7] flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider block">
-                    Total Estimasi Biaya
+                  <span className="text-[11px] font-semibold text-[#795f22] uppercase tracking-wider block">
+                    Harga belum diperlukan
                   </span>
-                  <span className="text-xs text-emerald-700">
-                    {items.length} macam barang
+                  <span className="text-xs text-[#8c7133]">
+                    Diisi purchasing setelah PR disetujui
                   </span>
                 </div>
-                <span className="text-base sm:text-lg font-black text-emerald-950">
-                  {formatRupiah(totalEstimatedAmount)}
-                </span>
+                <span className="text-xs font-bold text-[#795f22]">{items.length} barang</span>
               </div>
             </div>
           )}
@@ -1113,26 +1104,14 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
-                          {it.quantity} {it.unit} @ {formatRupiah(it.estimatedUnitPrice || 0)}
-                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{it.quantity} {it.unit}</div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <span className="font-bold text-slate-900 block">
-                          {formatRupiah((it.quantity || 0) * (it.estimatedUnitPrice || 0))}
-                        </span>
-                      </div>
+                      <span className="shrink-0 rounded-lg bg-[#fff4d6] px-2 py-1 text-[10px] font-semibold text-[#8c6417]">Harga setelah approval</span>
                     </div>
                   ))}
                 </div>
 
-                {/* Grand Total */}
-                <div className="p-3 bg-emerald-600 text-white rounded-xl flex items-center justify-between shadow-xs">
-                  <span className="text-xs font-semibold">Total Estimasi Keseluruhan:</span>
-                  <span className="text-base font-black">
-                    {formatRupiah(totalEstimatedAmount)}
-                  </span>
-                </div>
+                <div className="p-3 bg-[#f5f4f0] text-[#666] rounded-xl text-xs">PR ini hanya mengajukan kebutuhan dan jumlah. Harga akan dicatat dari penawaran supplier setelah approval.</div>
               </div>
 
               {/* Confirmation Checkbox */}

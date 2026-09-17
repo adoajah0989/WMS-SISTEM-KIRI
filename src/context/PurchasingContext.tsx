@@ -374,6 +374,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       id: `pr-${Date.now()}`,
       prNumber: generatePRNumber(),
       status: prData.status || 'menunggu_persetujuan',
+      pricingStatus: prData.pricingStatus || 'belum_diminta',
       createdAt: new Date().toISOString(),
     };
     setRequisitions((prev) => [newPR, ...prev]);
@@ -396,6 +397,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
           return {
             ...pr,
             status,
+            pricingStatus: pr.pricingStatus || 'belum_diminta',
             approvedBy: reasonOrApprover || 'Manajer Operasional',
             approvedAt: new Date().toISOString(),
           };
@@ -421,6 +423,10 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     const targetPR = requisitions.find((pr) => pr.id === prId);
     const targetSupplier = suppliers.find((s) => s.id === supplierId);
     if (!targetPR || !targetSupplier) return null;
+    if (targetPR.pricingStatus !== 'harga_diterima') {
+      alert('Harga supplier untuk PR ini belum selesai. Input dan simpan penawaran harga sebelum menerbitkan PO.');
+      return null;
+    }
 
     const poItems = targetPR.items.map((item, idx) => ({
       id: `poi-${Date.now()}-${idx}`,
