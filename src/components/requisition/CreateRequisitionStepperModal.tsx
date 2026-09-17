@@ -17,6 +17,7 @@ import {
   MoreVertical,
   Check,
   ChevronDown,
+  ChevronUp,
   Sparkles,
   RotateCcw,
   X,
@@ -105,6 +106,13 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   const [stockCategoryFilter, setStockCategoryFilter] = useState('all');
   const [stockRackFilter, setStockRackFilter] = useState('all');
   const [selectedStockIds, setSelectedStockIds] = useState<string[]>([]);
+  const [expandedItemIds, setExpandedItemIds] = useState<string[]>([]);
+
+  const toggleItemDetails = (itemKey: string) => {
+    setExpandedItemIds((current) => current.includes(itemKey)
+      ? current.filter((id) => id !== itemKey)
+      : [...current, itemKey]);
+  };
 
   const stockCategories = Array.from(new Set(warehouseItems.map((item) => item.category).filter(Boolean))).sort();
   const stockRacks = Array.from(new Set(warehouseItems.map((item) => item.warehouseLocation).filter(Boolean))).sort();
@@ -915,192 +923,69 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               </section>
 
               {/* Items List */}
-              <div className="space-y-3.5">
-                {items.map((item, index) => (
-                  <div
-                    key={item.id || index}
-                    className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-3 shadow-2xs transition hover:border-slate-300"
-                  >
-                    {/* Item Header */}
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-md bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">
-                          {index + 1}
-                        </span>
-                        <span className="text-xs font-bold text-slate-800">
-                          Item #{index + 1}
-                        </span>
-                        {item.sku && (
-                          <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-[10px] font-mono font-semibold">
-                            {item.sku}
-                          </span>
-                        )}
+              <div className="space-y-3">
+                {items.map((item, index) => {
+                  const itemKey = item.id || String(index);
+                  const isExpanded = !item.itemName || expandedItemIds.includes(itemKey);
+                  const stockItem = warehouseItems.find((warehouseItem) => warehouseItem.id === item.itemId);
+                  return (
+                    <div key={itemKey} className="rounded-2xl border border-[#dfddd7] bg-white p-3.5 shadow-2xs">
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e5f6e1] text-xs font-bold text-[#397c31]">{index + 1}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-[#292929]">{item.itemName || `Item #${index + 1}`}</p>
+                          <p className="mt-1 truncate text-[10px] text-[#85847e]">{item.sku || 'Belum memilih SKU'} · {item.category}</p>
+                        </div>
+                        <button type="button" onClick={() => handleRemoveItem(index)} className="-mr-1 min-h-9 min-w-9 rounded-lg p-2 text-[#aaa8a1] hover:bg-[#fff0ee] hover:text-[#bd4943]" title="Hapus barang"><Trash2 className="h-4 w-4" /></button>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(index)}
-                        className="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition"
-                        title="Hapus baris"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                      <div className="mt-3 grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="mb-1 block text-[11px] font-medium text-[#666]">Jumlah</label>
+                          <div className="flex h-11 items-center overflow-hidden rounded-xl border border-[#d8d6cf] bg-white">
+                            <button type="button" onClick={() => handleUpdateItem(index, 'quantity', Math.max(1, (item.quantity || 1) - 1))} className="flex h-full min-w-10 items-center justify-center text-[#777] active:bg-[#f1f0ec]"><Minus className="h-3.5 w-3.5" /></button>
+                            <NumberInput type="number" min="1" value={item.quantity} onChange={(e) => handleUpdateItem(index, 'quantity', parseFloat(e.target.value) || 1)} className="min-w-0 flex-1 text-center text-sm font-bold text-[#292929] outline-none" />
+                            <button type="button" onClick={() => handleUpdateItem(index, 'quantity', (item.quantity || 1) + 1)} className="flex h-full min-w-10 items-center justify-center text-[#292929] active:bg-[#f1f0ec]"><Plus className="h-3.5 w-3.5" /></button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[11px] font-medium text-[#666]">Satuan</label>
+                          <select value={item.unit} onChange={(e) => handleUpdateItem(index, 'unit', e.target.value)} className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-sm font-medium text-[#292929]">{COMMON_UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}</select>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between border-t border-[#eceae5] pt-3">
+                        <span className="text-[11px] text-[#77766f]">Estimasi subtotal</span>
+                        <strong className="text-sm tabular-nums text-[#292929]">{formatRupiah((item.quantity || 0) * (item.estimatedUnitPrice || 0))}</strong>
+                      </div>
+
+                      <button type="button" onClick={() => toggleItemDetails(itemKey)} className="mt-1 flex min-h-10 w-full items-center gap-1.5 text-left text-xs font-medium text-[#65645f]">
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        {isExpanded ? 'Tutup detail' : 'Detail lainnya'}
+                        {!isExpanded && <span className="text-[10px] font-normal text-[#9a9892]">· stok, harga, catatan</span>}
                       </button>
-                    </div>
 
-                    {/* Warehouse Stock Selector (Optional helper) */}
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Pilih dari Stok Gudang (Opsional)
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={item.itemId || ''}
-                          onChange={(e) => handleSelectWarehouseStock(index, e.target.value)}
-                          className="w-full text-xs bg-white border border-slate-300 rounded-xl p-2.5 text-slate-800 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium"
-                        >
-                          <option value="">-- Ketik nama manual atau pilih katalog stok --</option>
-                          {warehouseItems.map((w) => (
-                            <option key={w.id} value={w.id}>
-                              [{w.sku}] {w.name} (Stok: {w.currentStock} {w.unit})
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-3 text-slate-400 pointer-events-none" />
-                      </div>
-                    </div>
-
-                    {/* Item Name */}
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-800 mb-1">
-                        Nama Barang <span className="text-emerald-600">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={item.itemName}
-                        onChange={(e) => handleUpdateItem(index, 'itemName', e.target.value)}
-                        placeholder="Contoh: Lakban 2 Inch / Oli Mesin 10W-40"
-                        className="w-full text-xs sm:text-sm bg-white border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
-                      />
-                    </div>
-
-                    {/* Category */}
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Kategori Barang
-                      </label>
-                      <select
-                        value={item.category}
-                        onChange={(e) => handleUpdateItem(index, 'category', e.target.value)}
-                        className="w-full text-xs bg-white border border-slate-300 rounded-xl p-2 text-slate-700"
-                      >
-                        {ITEM_CATEGORIES.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Qty with Stepper Buttons & Satuan */}
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-800 mb-1">
-                          Jumlah (Qty) <span className="text-emerald-600">*</span>
-                        </label>
-                        <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleUpdateItem(index, 'quantity', Math.max(1, (item.quantity || 1) - 1))
-                            }
-                            className="p-2 text-slate-500 hover:text-slate-800 active:bg-slate-100"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-                          <NumberInput
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              handleUpdateItem(index, 'quantity', parseFloat(e.target.value) || 1)
-                            }
-                            className="w-full text-center text-xs sm:text-sm font-bold text-slate-900 focus:outline-none p-1.5"
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleUpdateItem(index, 'quantity', (item.quantity || 1) + 1)
-                            }
-                            className="p-2 text-slate-500 hover:text-slate-800 active:bg-slate-100"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
+                      {isExpanded && <div className="space-y-3 border-t border-[#eceae5] pt-3">
+                        <div>
+                          <label className="mb-1 block text-[11px] font-semibold text-[#666]">Pilih dari stok gudang</label>
+                          <select value={item.itemId || ''} onChange={(e) => handleSelectWarehouseStock(index, e.target.value)} className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-[#faf9f6] px-3 text-xs font-medium text-[#444]">
+                            <option value="">Ketik manual / pilih katalog stok</option>
+                            {warehouseItems.map((warehouseItem) => <option key={warehouseItem.id} value={warehouseItem.id}>[{warehouseItem.sku}] {warehouseItem.name} · stok {warehouseItem.currentStock} {warehouseItem.unit}</option>)}
+                          </select>
                         </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-800 mb-1">
-                          Satuan Kemasan
-                        </label>
-                        <select
-                          value={item.unit}
-                          onChange={(e) => handleUpdateItem(index, 'unit', e.target.value)}
-                          className="w-full text-xs sm:text-sm bg-white border border-slate-300 rounded-xl p-2.5 text-slate-800 font-medium"
-                        >
-                          {COMMON_UNITS.map((u) => (
-                            <option key={u} value={u}>
-                              {u}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Estimasi Harga & Subtotal */}
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Est. Harga Satuan (Rp)
-                        </label>
-                        <NumberInput
-                          type="number"
-                          min="0"
-                          value={item.estimatedUnitPrice || ''}
-                          onChange={(e) =>
-                            handleUpdateItem(
-                              index,
-                              'estimatedUnitPrice',
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          placeholder="0"
-                          className="w-full text-xs bg-white border border-slate-300 rounded-xl p-2.5 text-slate-800 font-medium"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Estimasi Subtotal
-                        </label>
-                        <div className="text-xs font-bold text-slate-900 p-2.5 bg-white rounded-xl border border-slate-200 truncate">
-                          {formatRupiah((item.quantity || 0) * (item.estimatedUnitPrice || 0))}
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                          <div><label className="mb-1 block text-[11px] font-semibold text-[#444]">Nama barang *</label><input type="text" required value={item.itemName} onChange={(e) => handleUpdateItem(index, 'itemName', e.target.value)} placeholder="Nama barang" className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-sm font-semibold text-[#292929]" /></div>
+                          <div><label className="mb-1 block text-[11px] font-semibold text-[#666]">Kategori</label><select value={item.category} onChange={(e) => handleUpdateItem(index, 'category', e.target.value)} className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs text-[#555]">{ITEM_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></div>
                         </div>
-                      </div>
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                          <div><label className="mb-1 block text-[11px] font-semibold text-[#666]">Estimasi harga / {item.unit}</label><NumberInput type="number" min="0" value={item.estimatedUnitPrice || ''} onChange={(e) => handleUpdateItem(index, 'estimatedUnitPrice', parseFloat(e.target.value) || 0)} placeholder="Rp 0" className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-sm font-medium text-[#292929]" /></div>
+                          <div className="rounded-xl bg-[#f5f4f0] px-3 py-2.5"><span className="block text-[10px] text-[#85847e]">Stok saat ini</span><strong className="mt-0.5 block text-xs text-[#444]">{stockItem ? `${stockItem.currentStock} ${stockItem.unit} · minimum ${stockItem.minStock}` : 'Tidak terhubung ke stok'}</strong></div>
+                        </div>
+                        <input type="text" value={item.notes || ''} onChange={(e) => handleUpdateItem(index, 'notes', e.target.value)} placeholder="Spesifikasi / merk (opsional)" className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs text-[#555]" />
+                      </div>}
                     </div>
-
-                    {/* Item Notes */}
-                    <div>
-                      <input
-                        type="text"
-                        value={item.notes || ''}
-                        onChange={(e) => handleUpdateItem(index, 'notes', e.target.value)}
-                        placeholder="Spesifikasi / merk yang diinginkan (opsional)"
-                        className="w-full text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 placeholder:text-slate-400"
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Step 2 Grand Total Card */}
