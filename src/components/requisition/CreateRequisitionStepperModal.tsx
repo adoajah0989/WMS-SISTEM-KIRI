@@ -107,12 +107,27 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   const [stockRackFilter, setStockRackFilter] = useState('all');
   const [selectedStockIds, setSelectedStockIds] = useState<string[]>([]);
   const [expandedItemIds, setExpandedItemIds] = useState<string[]>([]);
+  const [isStockListLoading, setIsStockListLoading] = useState(true);
+  const [activeItemHintId, setActiveItemHintId] = useState<string | null>(null);
 
   const toggleItemDetails = (itemKey: string) => {
     setExpandedItemIds((current) => current.includes(itemKey)
       ? current.filter((id) => id !== itemKey)
       : [...current, itemKey]);
   };
+
+  useEffect(() => {
+    if (!isOpen || !stockPickerOpen) return;
+    setIsStockListLoading(true);
+    const timer = window.setTimeout(() => setIsStockListLoading(false), 360);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, stockPickerOpen]);
+
+  useEffect(() => {
+    if (!activeItemHintId) return;
+    const timer = window.setTimeout(() => setActiveItemHintId(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [activeItemHintId]);
 
   const stockCategories = Array.from(new Set(warehouseItems.map((item) => item.category).filter(Boolean))).sort();
   const stockRacks = Array.from(new Set(warehouseItems.map((item) => item.warehouseLocation).filter(Boolean))).sort();
@@ -560,7 +575,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         </div>
 
         {/* STEPPER PROGRESS BAR (Matching 1 - 2 - 3 design) */}
-        <div className="bg-white border-b border-[#eceae5] px-6 py-3.5 shrink-0">
+        <div className="shrink-0 border-b border-[#eceae5] bg-white px-5 py-2.5 sm:px-6 sm:py-3.5">
           <div className="flex items-center justify-between max-w-sm mx-auto">
             {/* Step 1: Barang */}
             <button
@@ -568,7 +583,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               className="flex flex-col items-center group cursor-pointer"
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                className={`h-7 w-7 rounded-full sm:h-8 sm:w-8 flex items-center justify-center text-xs font-bold transition-all ${
                   currentStep === 1
                     ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-xs'
                     : currentStep > 1
@@ -579,7 +594,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 {currentStep > 1 ? <Check className="w-4 h-4 stroke-[3]" /> : '1'}
               </div>
               <span
-                className={`text-[11px] font-semibold mt-1.5 transition-colors ${
+                className={`mt-1 text-[10px] font-semibold transition-colors sm:mt-1.5 sm:text-[11px] ${
                   currentStep === 1 || currentStep > 1
                     ? 'text-emerald-700 font-bold'
                     : 'text-slate-500'
@@ -604,7 +619,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               className="flex flex-col items-center group cursor-pointer"
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                className={`h-7 w-7 rounded-full sm:h-8 sm:w-8 flex items-center justify-center text-xs font-bold transition-all ${
                   currentStep === 2
                     ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-xs'
                     : currentStep > 2
@@ -615,7 +630,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 {currentStep > 2 ? <Check className="w-4 h-4 stroke-[3]" /> : '2'}
               </div>
               <span
-                className={`text-[11px] font-semibold mt-1.5 transition-colors ${
+                className={`mt-1 text-[10px] font-semibold transition-colors sm:mt-1.5 sm:text-[11px] ${
                   currentStep === 2 || currentStep > 2
                     ? 'text-emerald-700 font-bold'
                     : 'text-slate-500'
@@ -640,7 +655,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               className="flex flex-col items-center group cursor-pointer"
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                className={`h-7 w-7 rounded-full sm:h-8 sm:w-8 flex items-center justify-center text-xs font-bold transition-all ${
                   currentStep === 3
                     ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-xs'
                     : 'bg-white border-2 border-slate-300 text-slate-500'
@@ -649,7 +664,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 3
               </div>
               <span
-                className={`text-[11px] font-semibold mt-1.5 transition-colors ${
+                className={`mt-1 text-[10px] font-semibold transition-colors sm:mt-1.5 sm:text-[11px] ${
                   currentStep === 3
                     ? 'text-emerald-700 font-bold'
                     : 'text-slate-500'
@@ -858,7 +873,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           {/* STEP 2: BARANG (DAFTAR BARANG & KEBUTUHAN)                */}
           {/* ======================================================== */}
           {currentStep === 1 && (
-            <div className="space-y-3 animate-in fade-in duration-150">
+            <div className="motion-fade-up space-y-2.5">
               {/* Section Header */}
               <div className="flex items-center justify-between pb-1">
                 <div className="flex items-center gap-2.5">
@@ -885,52 +900,58 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 </button>
               </div>
 
-              <div className="grid items-start gap-3 xl:grid-cols-[minmax(320px,0.42fr)_minmax(0,1fr)]">
+              <div className="grid items-start gap-2.5 xl:grid-cols-[minmax(320px,0.42fr)_minmax(0,1fr)]">
                 <div className="min-w-0 xl:sticky xl:top-0">
                   {/* Smart stock picker: choose first, edit quantity afterwards */}
-              <section className="overflow-hidden rounded-2xl border border-[#dfddd7] bg-[#faf9f6]">
+              <section className="motion-fade-up overflow-hidden rounded-xl border border-[#dfddd7] bg-[#faf9f6] sm:rounded-2xl">
                 <button
                   type="button"
                   onClick={() => setStockPickerOpen((value) => !value)}
-                  className="flex min-h-14 w-full items-center justify-between gap-3 px-3.5 py-3 text-left"
+                  className="flex min-h-12 w-full items-center justify-between gap-2.5 px-3 py-2.5 text-left sm:min-h-14 sm:px-3.5 sm:py-3"
                 >
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e5f6e1] text-[#397c31]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e5f6e1] text-[#397c31] sm:h-9 sm:w-9 sm:rounded-xl">
                       <Sparkles className="h-4 w-4" />
                     </span>
                     <span className="min-w-0">
                       <strong className="block truncate text-xs text-[#333]">Ambil dari stok kosong & menipis</strong>
-                      <span className="mt-0.5 block truncate text-[10px] text-[#85847e]">Pilih berdasarkan status, kategori, atau rak</span>
+                      <span className="mt-0.5 hidden truncate text-[10px] text-[#85847e] min-[390px]:block">Pilih berdasarkan status, kategori, atau rak</span>
                     </span>
                   </span>
                   <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[10px] font-semibold text-[#65645f] shadow-sm">{recommendedWarehouseItems.length} item</span>
                 </button>
 
-                {stockPickerOpen && <div className="border-t border-[#e7e5e0] bg-white p-3">
+                {stockPickerOpen && <div className="motion-pop border-t border-[#e7e5e0] bg-white p-2.5 sm:p-3">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#999892]" />
-                    <input value={stockSearch} onChange={(event) => setStockSearch(event.target.value)} placeholder="Cari nama barang atau SKU..." className="h-11 w-full rounded-xl border border-[#deddd7] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#76ca67] focus:ring-4 focus:ring-[#82dd70]/15" />
+                    <input value={stockSearch} onChange={(event) => setStockSearch(event.target.value)} placeholder="Cari nama barang atau SKU..." className="h-10 w-full rounded-lg sm:h-11 sm:rounded-xl border border-[#deddd7] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#76ca67] focus:ring-4 focus:ring-[#82dd70]/15" />
                   </div>
 
                   <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
                     {([
                       ['all', 'Semua risiko'], ['empty', 'Kosong'], ['critical', 'Sekarat'], ['low', 'Menipis'],
-                    ] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setStockStatusFilter(value)} className={`min-h-9 shrink-0 rounded-xl px-3 text-[11px] font-semibold ${stockStatusFilter === value ? 'bg-[#252525] text-white' : 'border border-[#dfddd7] bg-white text-[#666]'}`}>{label}</button>)}
+                    ] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setStockStatusFilter(value)} className={`min-h-8 shrink-0 rounded-lg px-2.5 text-[10px] sm:min-h-9 sm:rounded-xl sm:px-3 sm:text-[11px] font-semibold ${stockStatusFilter === value ? 'bg-[#252525] text-white' : 'border border-[#dfddd7] bg-white text-[#666]'}`}>{label}</button>)}
                   </div>
 
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    <label className="relative"><ListFilter className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#999892]" /><select value={stockCategoryFilter} onChange={(event) => setStockCategoryFilter(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-[#dfddd7] bg-white pl-8 pr-2 text-xs text-[#555]"><option value="all">Semua kategori</option>{stockCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
-                    <label className="relative"><Layers className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#999892]" /><select value={stockRackFilter} onChange={(event) => setStockRackFilter(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-[#dfddd7] bg-white pl-8 pr-2 text-xs text-[#555]"><option value="all">Semua rak</option>{stockRacks.map((rack) => <option key={rack} value={rack}>{rack}</option>)}</select></label>
+                    <label className="relative"><ListFilter className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#999892]" /><select value={stockCategoryFilter} onChange={(event) => setStockCategoryFilter(event.target.value)} className="h-9 w-full appearance-none rounded-lg sm:h-10 sm:rounded-xl border border-[#dfddd7] bg-white pl-8 pr-2 text-xs text-[#555]"><option value="all">Semua kategori</option>{stockCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
+                    <label className="relative"><Layers className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#999892]" /><select value={stockRackFilter} onChange={(event) => setStockRackFilter(event.target.value)} className="h-9 w-full appearance-none rounded-lg sm:h-10 sm:rounded-xl border border-[#dfddd7] bg-white pl-8 pr-2 text-xs text-[#555]"><option value="all">Semua rak</option>{stockRacks.map((rack) => <option key={rack} value={rack}>{rack}</option>)}</select></label>
                   </div>
 
-                  <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-0.5">
-                    {recommendedWarehouseItems.length === 0 ? <div className="rounded-xl bg-[#f5f4f0] p-5 text-center text-xs text-[#85847e]">Tidak ada barang yang cocok dengan filter.</div> : recommendedWarehouseItems.map((stockItem) => {
+                  <div className="mt-2.5 max-h-64 space-y-1.5 overflow-y-auto pr-0.5 sm:mt-3 sm:space-y-2">
+                    {isStockListLoading ? Array.from({ length: 4 }).map((_, skeletonIndex) => (
+                      <div key={skeletonIndex} className="flex min-h-14 items-center gap-2.5 rounded-xl border border-[#eceae5] bg-white p-2.5">
+                        <span className="skeleton-shimmer h-5 w-5 shrink-0 rounded-md" />
+                        <span className="min-w-0 flex-1 space-y-1.5"><span className="skeleton-shimmer block h-3 w-2/3 rounded" /><span className="skeleton-shimmer block h-2.5 w-5/6 rounded" /></span>
+                        <span className="skeleton-shimmer h-7 w-10 shrink-0 rounded-lg" />
+                      </div>
+                    )) : recommendedWarehouseItems.length === 0 ? <div className="motion-fade-up rounded-xl bg-[#f5f4f0] p-5 text-center text-xs text-[#85847e]">Tidak ada barang yang cocok dengan filter.</div> : recommendedWarehouseItems.map((stockItem, stockIndex) => {
                       const checked = selectedStockIds.includes(stockItem.id);
                       const status = stockItem.currentStock <= 0 ? 'Kosong' : stockItem.currentStock <= stockItem.minStock * .5 ? 'Sekarat' : 'Menipis';
-                      return <button key={stockItem.id} type="button" onClick={() => handleToggleStockItem(stockItem.id)} className={`flex min-h-16 w-full items-center gap-3 rounded-xl border p-3 text-left transition ${checked ? 'border-[#72c862] bg-[#edf8ea]' : 'border-[#e7e5e0] bg-white'}`}>
-                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked ? 'border-[#5eaf51] bg-[#67bf59] text-white' : 'border-[#c8c6bf] bg-white text-transparent'}`}><Check className="h-3.5 w-3.5" /></span>
-                        <span className="min-w-0 flex-1"><span className="flex items-center gap-1.5"><strong className="truncate text-xs text-[#333]">{stockItem.name}</strong><span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold ${status === 'Kosong' ? 'bg-[#ffe7e4] text-[#bd4943]' : status === 'Sekarat' ? 'bg-[#fff0df] text-[#b45f18]' : 'bg-[#fff6d9] text-[#947016]'}`}>{status}</span></span><span className="mt-1 block truncate text-[10px] text-[#85847e]">{stockItem.sku} · {stockItem.category} · {stockItem.warehouseLocation}</span></span>
-                        <span className="shrink-0 text-right"><strong className="block text-sm tabular-nums text-[#333]">{stockItem.currentStock}</strong><span className="text-[9px] text-[#85847e]">{stockItem.unit} / min {stockItem.minStock}</span></span>
+                      return <button key={stockItem.id} type="button" onClick={() => handleToggleStockItem(stockItem.id)} style={{ animationDelay: `${Math.min(stockIndex, 6) * 35}ms` }} className={`motion-fade-up flex min-h-14 w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition active:scale-[.99] sm:min-h-16 sm:gap-3 sm:p-3 ${checked ? 'border-[#72c862] bg-[#edf8ea]' : 'border-[#e7e5e0] bg-white'}`}>
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked ? 'motion-pop border-[#5eaf51] bg-[#67bf59] text-white' : 'border-[#c8c6bf] bg-white text-transparent'}`}><Check className="h-3.5 w-3.5" /></span>
+                        <span className="min-w-0 flex-1"><span className="flex items-center gap-1.5"><strong className="truncate text-[11px] text-[#333] sm:text-xs">{stockItem.name}</strong><span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold ${status === 'Kosong' ? 'bg-[#ffe7e4] text-[#bd4943]' : status === 'Sekarat' ? 'bg-[#fff0df] text-[#b45f18]' : 'bg-[#fff6d9] text-[#947016]'}`}>{status}</span></span><span className="mt-0.5 block truncate text-[9px] text-[#85847e] sm:mt-1 sm:text-[10px]">{stockItem.sku} · <span className="hidden min-[390px]:inline">{stockItem.category} · </span>{stockItem.warehouseLocation}</span></span>
+                        <span className="shrink-0 text-right"><strong className="block text-sm tabular-nums text-[#333]">{stockItem.currentStock}</strong><span className="text-[8px] text-[#85847e] sm:text-[9px]">{stockItem.unit} / min {stockItem.minStock}</span></span>
                       </button>;
                     })}
                   </div>
@@ -951,7 +972,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                   const isExpanded = !item.itemName || expandedItemIds.includes(itemKey);
                   const stockItem = warehouseItems.find((warehouseItem) => warehouseItem.id === item.itemId);
                   return (
-                    <div key={itemKey} className="rounded-xl border border-[#dfddd7] bg-white p-2.5 shadow-2xs">
+                    <div key={itemKey} style={{ animationDelay: `${Math.min(index, 7) * 45}ms` }} className="motion-fade-up relative rounded-xl border border-[#dfddd7] bg-white p-2 shadow-2xs sm:p-2.5">
                       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[minmax(0,1fr)_9.5rem_7rem] sm:items-end">
                         <div className="col-span-2 flex min-w-0 items-start gap-2.5 sm:col-span-1 sm:self-center">
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e5f6e1] text-[11px] font-bold text-[#397c31]">{index + 1}</span>
@@ -960,34 +981,44 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                               <p className="truncate text-[13px] font-bold leading-5 text-[#292929]">{item.itemName || `Item #${index + 1}`}</p>
                               <button type="button" onClick={() => handleRemoveItem(index)} className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#aaa8a1] hover:bg-[#fff0ee] hover:text-[#bd4943]" title="Hapus barang" aria-label={`Hapus ${item.itemName || `item ${index + 1}`}`}><Trash2 className="h-3.5 w-3.5" /></button>
                             </div>
-                            <p className="truncate text-[9px] leading-4 text-[#85847e]">{item.sku || 'Belum memilih SKU'} · {item.category}</p>
+                            <button type="button" onClick={() => setActiveItemHintId(activeItemHintId === itemKey ? null : itemKey)} className="flex max-w-full items-center gap-1 truncate text-[9px] leading-4 text-[#85847e]">
+                              <span className="truncate">{item.sku || 'Belum memilih SKU'}<span className="hidden sm:inline"> · {item.category}</span></span>
+                              <Info className="h-3 w-3 shrink-0 sm:hidden" />
+                            </button>
                           </div>
                         </div>
 
+                        {activeItemHintId === itemKey && (
+                          <div className="motion-pop absolute left-2 right-2 top-10 z-20 rounded-xl border border-[#dedcd5] bg-[#252525] p-2.5 text-[10px] leading-relaxed text-white shadow-xl sm:hidden">
+                            <strong className="block text-[#82dd70]">{item.sku || 'Tanpa SKU'} · {item.category}</strong>
+                            <span className="mt-0.5 block text-white/75">{stockItem ? `Stok ${stockItem.currentStock} ${stockItem.unit}, minimum ${stockItem.minStock}. Harga diisi setelah approval.` : 'Barang manual. Harga diisi setelah approval.'}</span>
+                          </div>
+                        )}
+
                         <div>
-                          <label className="mb-1 block text-[10px] font-medium leading-none text-[#77766f]">Jumlah</label>
-                          <div className="flex h-9 items-center overflow-hidden rounded-lg border border-[#d8d6cf] bg-white">
+                          <label className="mb-1 block text-[9px] font-medium leading-none text-[#77766f] sm:text-[10px]">Jumlah</label>
+                          <div className="flex h-8 items-center overflow-hidden rounded-lg border border-[#d8d6cf] bg-white">
                             <button type="button" onClick={() => handleUpdateItem(index, 'quantity', Math.max(1, (item.quantity || 1) - 1))} className="flex h-full w-9 shrink-0 items-center justify-center text-[#777] active:bg-[#f1f0ec]" aria-label="Kurangi jumlah"><Minus className="h-3.5 w-3.5" /></button>
                             <NumberInput type="number" min="1" value={item.quantity} onChange={(e) => handleUpdateItem(index, 'quantity', parseFloat(e.target.value) || 1)} className="min-w-0 flex-1 text-center text-xs font-bold text-[#292929] outline-none" />
                             <button type="button" onClick={() => handleUpdateItem(index, 'quantity', (item.quantity || 1) + 1)} className="flex h-full w-9 shrink-0 items-center justify-center text-[#292929] active:bg-[#f1f0ec]" aria-label="Tambah jumlah"><Plus className="h-3.5 w-3.5" /></button>
                           </div>
                         </div>
                         <div>
-                          <label className="mb-1 block text-[10px] font-medium leading-none text-[#77766f]">Satuan</label>
-                          <select value={item.unit} onChange={(e) => handleUpdateItemUnit(index, e.target.value)} className="h-9 w-full rounded-lg border border-[#d8d6cf] bg-white px-2.5 text-xs font-medium text-[#292929]">{getItemUnitOptions(item).map((option) => <option key={option.unit} value={option.unit}>{option.unit}{option.ratio > 1 ? ` (1 = ${option.ratio} ${item.stockUnit || stockItem?.unit || 'unit dasar'})` : ''}</option>)}</select>
+                          <label className="mb-1 block text-[9px] font-medium leading-none text-[#77766f] sm:text-[10px]">Satuan</label>
+                          <select value={item.unit} onChange={(e) => handleUpdateItemUnit(index, e.target.value)} className="h-8 w-full rounded-lg border border-[#d8d6cf] bg-white px-2.5 text-xs font-medium text-[#292929] sm:h-9">{getItemUnitOptions(item).map((option) => <option key={option.unit} value={option.unit}>{option.unit}{option.ratio > 1 ? ` (1 = ${option.ratio} ${item.stockUnit || stockItem?.unit || 'unit dasar'})` : ''}</option>)}</select>
                         </div>
                       </div>
 
-                      <div className="mt-2 flex min-h-7 items-center justify-between gap-2 border-t border-[#eceae5] pt-2">
+                      <div className="mt-1.5 flex min-h-7 items-center justify-between gap-2 border-t border-[#eceae5] pt-1.5 sm:mt-2 sm:pt-2">
                         <button type="button" onClick={() => toggleItemDetails(itemKey)} className="flex min-h-7 items-center gap-1 text-left text-[11px] font-medium text-[#65645f]">
                           {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                           {isExpanded ? 'Tutup detail' : 'Detail'}
                           {!isExpanded && <span className="hidden font-normal text-[#9a9892] sm:inline">· stok & catatan</span>}
                         </button>
-                        <span className="shrink-0 rounded-md bg-[#fff4d6] px-2 py-1 text-[9px] font-semibold text-[#8c6417]">Harga setelah approval</span>
+                        <button type="button" onClick={() => setActiveItemHintId(itemKey)} className="shrink-0 rounded-md bg-[#fff4d6] px-2 py-1 text-[9px] font-semibold text-[#8c6417]"><span className="sm:hidden">Harga nanti</span><span className="hidden sm:inline">Harga setelah approval</span></button>
                       </div>
 
-                      {isExpanded && <div className="mt-2 space-y-2.5 border-t border-[#eceae5] pt-2.5">
+                      {isExpanded && <div className="motion-pop mt-2 space-y-2.5 border-t border-[#eceae5] pt-2.5">
                         <div>
                           <label className="mb-1 block text-[10px] font-semibold text-[#666]">Pilih dari stok gudang</label>
                           <select value={item.itemId || ''} onChange={(e) => handleSelectWarehouseStock(index, e.target.value)} className="h-10 w-full rounded-lg border border-[#d8d6cf] bg-[#faf9f6] px-3 text-xs font-medium text-[#444]">
