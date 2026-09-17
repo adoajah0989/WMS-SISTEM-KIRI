@@ -263,6 +263,25 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
     );
   };
 
+  const getItemUnitOptions = (item: PRItem) => {
+    const warehouseItem = warehouseItems.find((candidate) => candidate.id === item.itemId);
+    if (!warehouseItem) return COMMON_UNITS.map((unit) => ({ unit, ratio: unit === item.unit ? item.conversionRatio || 1 : 1 }));
+    const options = [
+      { unit: warehouseItem.unit, ratio: 1 },
+      ...(warehouseItem.intermediateUnit ? [{ unit: warehouseItem.intermediateUnit, ratio: warehouseItem.intermediateConversionRatio || 1 }] : []),
+      ...(warehouseItem.purchaseUnit ? [{ unit: warehouseItem.purchaseUnit, ratio: warehouseItem.conversionRatio || 1 }] : []),
+    ];
+    return options.filter((option, optionIndex) => options.findIndex((candidate) => candidate.unit.toLowerCase() === option.unit.toLowerCase()) === optionIndex);
+  };
+
+  const handleUpdateItemUnit = (index: number, unit: string) => {
+    setItems((current) => current.map((item, itemIndex) => {
+      if (itemIndex !== index) return item;
+      const selected = getItemUnitOptions(item).find((option) => option.unit === unit);
+      return { ...item, unit, conversionRatio: selected?.ratio || 1 };
+    }));
+  };
+
   const handleSelectWarehouseStock = (index: number, itemId: string) => {
     if (!itemId) {
       handleUpdateItem(index, 'itemId', undefined);
@@ -280,7 +299,9 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 sku: found.sku,
                 itemName: found.name,
                 category: found.category || it.category,
-                unit: found.unit || it.unit,
+                unit: found.purchaseUnit || found.intermediateUnit || found.unit || it.unit,
+                stockUnit: found.unit,
+                conversionRatio: found.purchaseUnit ? found.conversionRatio || 1 : found.intermediateUnit ? found.intermediateConversionRatio || 1 : 1,
                 estimatedUnitPrice: 0,
               }
             : it
@@ -953,7 +974,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                         </div>
                         <div>
                           <label className="mb-1 block text-[10px] font-medium leading-none text-[#77766f]">Satuan</label>
-                          <select value={item.unit} onChange={(e) => handleUpdateItem(index, 'unit', e.target.value)} className="h-9 w-full rounded-lg border border-[#d8d6cf] bg-white px-2.5 text-xs font-medium text-[#292929]">{COMMON_UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}</select>
+                          <select value={item.unit} onChange={(e) => handleUpdateItemUnit(index, e.target.value)} className="h-9 w-full rounded-lg border border-[#d8d6cf] bg-white px-2.5 text-xs font-medium text-[#292929]">{getItemUnitOptions(item).map((option) => <option key={option.unit} value={option.unit}>{option.unit}{option.ratio > 1 ? ` (1 = ${option.ratio} ${item.stockUnit || stockItem?.unit || 'unit dasar'})` : ''}</option>)}</select>
                         </div>
                       </div>
 

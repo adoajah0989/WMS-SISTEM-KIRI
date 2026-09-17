@@ -99,6 +99,8 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState('Bahan Baku & Kimia Industri');
   const [formUnit, setFormUnit] = useState('Pcs');
+  const [formIntermediateUnit, setFormIntermediateUnit] = useState('');
+  const [formIntermediateConversionRatio, setFormIntermediateConversionRatio] = useState<number>(1);
   const [formPurchaseUnit, setFormPurchaseUnit] = useState('Dus');
   const [formConversionRatio, setFormConversionRatio] = useState<number>(1);
   const [formInitialStock, setFormInitialStock] = useState(0);
@@ -199,6 +201,8 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
     setFormName('');
     setFormCategory('Bahan Baku & Kimia Industri');
     setFormUnit('Pcs');
+    setFormIntermediateUnit('');
+    setFormIntermediateConversionRatio(1);
     setFormPurchaseUnit('Dus');
     setFormConversionRatio(1);
     setFormInitialStock(0);
@@ -216,6 +220,8 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
     setFormName(item.name);
     setFormCategory(item.category);
     setFormUnit(item.unit);
+    setFormIntermediateUnit(item.intermediateUnit || '');
+    setFormIntermediateConversionRatio(item.intermediateConversionRatio || 1);
     setFormPurchaseUnit(item.purchaseUnit || item.unit);
     setFormConversionRatio(item.conversionRatio || 1);
     setFormInitialStock(item.currentStock);
@@ -240,6 +246,11 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
       return;
     }
     const ratio = formConversionRatio > 0 ? formConversionRatio : 1;
+    const intermediateRatio = formIntermediateConversionRatio > 0 ? formIntermediateConversionRatio : 1;
+    if (formIntermediateUnit.trim() && intermediateRatio >= ratio && formPurchaseUnit.trim() !== formIntermediateUnit.trim()) {
+      alert('Rasio satuan tengah harus lebih kecil dari rasio satuan beli.');
+      return;
+    }
     const pricing = pricingFromPurchaseUnit(formPrice, ratio);
 
     if (editingItem) {
@@ -248,6 +259,8 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
         name: formName,
         category: formCategory,
         unit: formUnit,
+        intermediateUnit: formIntermediateUnit.trim() || undefined,
+        intermediateConversionRatio: formIntermediateUnit.trim() ? intermediateRatio : undefined,
         purchaseUnit: formPurchaseUnit || formUnit,
         conversionRatio: ratio,
         minStock: formMinStock,
@@ -262,6 +275,8 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
         name: formName,
         category: formCategory,
         unit: formUnit,
+        intermediateUnit: formIntermediateUnit.trim() || undefined,
+        intermediateConversionRatio: formIntermediateUnit.trim() ? intermediateRatio : undefined,
         purchaseUnit: formPurchaseUnit || formUnit,
         conversionRatio: ratio,
         currentStock: formInitialStock,
@@ -978,49 +993,44 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Satuan Dasar Gudang *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formUnit}
-                        onChange={(e) => setFormUnit(e.target.value)}
-                        placeholder="Pcs, Kg, Liter"
-                        className="w-full border border-slate-300 rounded-lg p-2.5 text-xs"
-                      />
+                  <div>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <label className="font-semibold text-slate-700">Tingkat Satuan & Konversi</label>
+                      <span className="text-[10px] text-slate-500">Maksimal 3 tingkat</span>
                     </div>
-
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Satuan Beli (Kemasan)</label>
-                      <input
-                        type="text"
-                        value={formPurchaseUnit}
-                        onChange={(e) => setFormPurchaseUnit(e.target.value)}
-                        placeholder="Dus, Box, Zak"
-                        className="w-full border border-slate-300 rounded-lg p-2.5 text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Rasio Konversi</label>
-                      <NumberInput
-                        type="number"
-                        min="1"
-                        step="any"
-                        value={formConversionRatio}
-                        onChange={(e) => setFormConversionRatio(parseFloat(e.target.value) || 1)}
-                        placeholder="Contoh: 24"
-                        className="w-full border border-slate-300 rounded-lg p-2.5 font-bold text-slate-900 text-xs"
-                      />
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-slate-500">1 · Satuan dasar</span>
+                        <input type="text" required value={formUnit} onChange={(e) => setFormUnit(e.target.value)} placeholder="Pcs, Kg, Liter" className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs" />
+                        <p className="mt-1.5 text-[10px] text-slate-500">Nilai stok tersimpan dalam satuan ini.</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-slate-500">2 · Satuan tengah (opsional)</span>
+                        <div className="grid grid-cols-[1fr_5.5rem] gap-2">
+                          <input type="text" value={formIntermediateUnit} onChange={(e) => setFormIntermediateUnit(e.target.value)} placeholder="Pack" className="h-10 min-w-0 rounded-lg border border-slate-300 px-3 text-xs" />
+                          <NumberInput type="number" min="1" step="any" value={formIntermediateConversionRatio} onChange={(e) => setFormIntermediateConversionRatio(parseFloat(e.target.value) || 1)} placeholder="Isi" className="h-10 min-w-0 rounded-lg border border-slate-300 px-2 text-xs font-bold" />
+                        </div>
+                        <p className="mt-1.5 text-[10px] text-slate-500">1 {formIntermediateUnit || 'Pack'} = {formIntermediateConversionRatio || 1} {formUnit || 'Pcs'}</p>
+                      </div>
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-emerald-700">3 · Satuan beli</span>
+                        <div className="grid grid-cols-[1fr_5.5rem] gap-2">
+                          <input type="text" value={formPurchaseUnit} onChange={(e) => setFormPurchaseUnit(e.target.value)} placeholder="Dus" className="h-10 min-w-0 rounded-lg border border-emerald-300 bg-white px-3 text-xs" />
+                          <NumberInput type="number" min="1" step="any" value={formConversionRatio} onChange={(e) => setFormConversionRatio(parseFloat(e.target.value) || 1)} placeholder="Isi" className="h-10 min-w-0 rounded-lg border border-emerald-300 bg-white px-2 text-xs font-bold" />
+                        </div>
+                        <p className="mt-1.5 text-[10px] text-emerald-700">1 {formPurchaseUnit || 'Dus'} = {formConversionRatio || 1} {formUnit || 'Pcs'}</p>
+                      </div>
                     </div>
                   </div>
 
                   {formConversionRatio > 1 && (
-                    <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg flex items-center gap-2 text-emerald-800 text-[11px]">
-                      <Repeat className="w-4 h-4 shrink-0 text-emerald-600" />
-                      <span>
-                        <strong>Konversi Otomatis:</strong> 1 {formPurchaseUnit || 'Kemasan'} = {formConversionRatio} {formUnit || 'Pcs'}.
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-[11px] text-emerald-800">
+                      <Repeat className="h-4 w-4 shrink-0 text-emerald-600" />
+                      <span><strong>Alur konversi:</strong> 1 {formPurchaseUnit || 'Satuan beli'}
+                        {formIntermediateUnit.trim() && formIntermediateConversionRatio > 0
+                          ? ` = ${Number((formConversionRatio / formIntermediateConversionRatio).toFixed(2))} ${formIntermediateUnit}`
+                          : ''}
+                        {' '}= {formConversionRatio} {formUnit || 'Pcs'}.
                       </span>
                     </div>
                   )}
