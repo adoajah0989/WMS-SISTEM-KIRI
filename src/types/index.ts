@@ -6,7 +6,7 @@ export type POStatus = 'draft' | 'diterbitkan' | 'terkirim' | 'diterima_sebagian
 export type PaymentTerm = 'cash' | 'cod' | 'net_7' | 'net_14' | 'net_30' | 'dp_50_net_30';
 
 export type StockCondition = 'baik' | 'rusak' | 'kurang';
-export type MovementType = 'penerimaan_po' | 'penyesuaian_masuk' | 'penyesuaian_keluar' | 'pengambilan_internal' | 'retur';
+export type MovementType = 'penerimaan_po' | 'penyesuaian_masuk' | 'penyesuaian_keluar' | 'pengambilan_internal' | 'retur' | 'opname_adjustment' | 'transfer_keluar';
 
 export interface WarehouseItem {
   id: string;
@@ -177,4 +177,71 @@ export interface GoodsReceipt {
   createdAt: string;
 }
 
-export type ActiveTab = 'dashboard' | 'requisitions' | 'purchase_orders' | 'goods_receipts' | 'warehouse' | 'suppliers';
+export interface WarehouseConfig {
+  id: string;
+  code: string;
+  name: string;
+  type: 'warehouse' | 'store';
+  city: string;
+  isActive: boolean;
+}
+
+export interface InventoryCategory {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface StockOpnameLine {
+  itemId: string;
+  sku: string;
+  itemName: string;
+  unit: string;
+  rack: string;
+  category: string;
+  systemStock: number;
+  physicalStock: number;
+  difference: number;
+  notes?: string;
+}
+
+export interface StockOpname {
+  id: string;
+  opnameNumber: string;
+  date: string;
+  template: 'harian' | 'bulanan' | 'rak' | 'kategori';
+  warehouseId: string;
+  warehouseName: string;
+  filterValue?: string;
+  lines: StockOpnameLine[];
+  status: 'selesai';
+  countedBy: string;
+  createdAt: string;
+}
+
+export interface StockTransferItem {
+  itemId: string;
+  sku: string;
+  itemName: string;
+  unit: string;
+  quantity: number;
+}
+
+export interface StoreTransfer {
+  id: string;
+  transferNumber: string;
+  date: string;
+  sourceWarehouseId: string;
+  sourceWarehouseName: string;
+  destinationStoreId: string;
+  destinationStoreName: string;
+  items: StockTransferItem[];
+  status: 'dikirim' | 'diterima';
+  sentBy: string;
+  receivedBy?: string;
+  receivedAt?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export type ActiveTab = 'dashboard' | 'requisitions' | 'purchase_orders' | 'goods_receipts' | 'warehouse' | 'stock_opname' | 'store_transfers' | 'suppliers';
