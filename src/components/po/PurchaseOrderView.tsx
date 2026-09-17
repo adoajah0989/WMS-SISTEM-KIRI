@@ -83,7 +83,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
 
   // Collapsible toggle for advanced optional settings
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const approvedPRs = requisitions.filter((pr) => pr.status === 'disetujui');
+  const approvedPRs = requisitions.filter((pr) => pr.status === 'disetujui' && pr.pricingStatus === 'harga_diterima');
   const [sourceMode, setSourceMode] = useState<'pr' | 'direct'>('pr');
   const [sourcePRId, setSourcePRId] = useState('');
 
@@ -126,15 +126,16 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
           stockUnit: item.stockUnit || stockItem?.unit || unit,
           conversionRatio: item.conversionRatio || stockItem?.conversionRatio || 1,
           quantity: item.quantity,
-          unitPrice: item.estimatedUnitPrice || stockItem?.lastPurchasePrice || 0,
+          unitPrice: item.estimatedUnitPrice || 0,
           discountPercent: 0,
-          subtotal: item.quantity * (item.estimatedUnitPrice || stockItem?.lastPurchasePrice || 0),
+          subtotal: item.quantity * (item.estimatedUnitPrice || 0),
           receivedQuantity: 0,
         };
       });
       setFormItems(itemsMapped);
       setSourceMode('pr');
       setSourcePRId(prefilledPR.id);
+      if (prefilledPR.quotedSupplierId) setFormSupplierId(prefilledPR.quotedSupplierId);
       setFormExpectedDate(prefilledPR.requiredDate);
       setFormNotes(`Diterbitkan atas dasar pengajuan ${prefilledPR.prNumber} (${prefilledPR.department}). Keperluan: ${prefilledPR.purpose}`);
     }
@@ -671,8 +672,8 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                 {sourceMode === 'pr' && <div className="mt-3">
                   {approvedPRs.length ? <select value={sourcePRId} onChange={(event) => handleSelectSourcePR(event.target.value)} className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs font-semibold text-[#444] outline-none focus:border-[#76ca67]">
                     <option value="">Pilih PR yang sudah disetujui...</option>
-                    {approvedPRs.map((pr) => <option key={pr.id} value={pr.id}>{pr.prNumber} · {pr.department} · {pr.items.length} barang · {formatRupiah(pr.totalEstimatedAmount)}</option>)}
-                  </select> : <div className="rounded-xl bg-[#fff2d8] p-3 text-xs text-[#8c6417]">Belum ada PR berstatus disetujui. Selesaikan approval atau gunakan PO langsung.</div>}
+                    {approvedPRs.map((pr) => <option key={pr.id} value={pr.id}>{pr.prNumber} · {pr.quotedSupplierName || 'Supplier'} · {pr.items.length} barang · {formatRupiah(pr.totalEstimatedAmount)}</option>)}
+                  </select> : <div className="rounded-xl bg-[#fff2d8] p-3 text-xs text-[#8c6417]">Belum ada PR yang sudah disetujui dan memiliki penawaran harga supplier.</div>}
                   {prefilledPR && <div className="mt-2 flex items-center justify-between rounded-xl bg-[#e8f7e4] px-3 py-2.5 text-[11px] text-[#356d2f]"><span><strong>{prefilledPR.items.length} barang</strong> sudah dimuat otomatis</span><span>{prefilledPR.prNumber}</span></div>}
                 </div>}
                 {sourceMode === 'direct' && <div className="mt-3 rounded-xl bg-[#eaf1ff] p-3 text-[11px] leading-relaxed text-[#315f9d]">Mode ini tetap tersedia untuk pembelian khusus tanpa PR. Pilih barang dari master gudang agar satuan, rasio, dan harga terakhir terisi otomatis.</div>}
