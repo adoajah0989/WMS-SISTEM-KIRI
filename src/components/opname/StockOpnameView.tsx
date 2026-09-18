@@ -9,10 +9,9 @@ import { formatDate } from '../../utils/formatters';
 type Template = 'harian' | 'bulanan' | 'rak' | 'kategori';
 
 export const StockOpnameView: React.FC = () => {
-  const { items, warehouses, stockOpnames, createStockOpname } = usePurchasing();
+  const { items, stockOpnames, createStockOpname, activeWarehouse } = usePurchasing();
   const { profile } = useAuth();
   const [template, setTemplate] = useState<Template>('harian');
-  const [warehouseId, setWarehouseId] = useState('');
   const [filterValue, setFilterValue] = useState('');
   const [lines, setLines] = useState<StockOpnameLine[]>([]);
   const [templateVersion, setTemplateVersion] = useState(0);
@@ -35,14 +34,13 @@ export const StockOpnameView: React.FC = () => {
   };
 
   const submit = () => {
-    const warehouse = warehouses.find((item) => item.id === warehouseId);
-    if (!warehouse || !lines.length) return;
+    if (!lines.length) return;
     if (filledLines !== lines.length) {
       alert(`Lengkapi hasil fisik seluruh barang. Masih ada ${lines.length - filledLines} input kosong.`);
       return;
     }
     if (!confirm(`Selesaikan opname ${lines.length} barang? ${differences} barang memiliki selisih dan akan menyesuaikan stok.`)) return;
-    createStockOpname({ date: new Date().toISOString().slice(0, 10), template, warehouseId, warehouseName: warehouse.name, filterValue: filterValue || undefined, lines, countedBy: profile.fullName || profile.email || 'Petugas Gudang' });
+    createStockOpname({ date: new Date().toISOString().slice(0, 10), template, warehouseId: activeWarehouse.id, warehouseName: activeWarehouse.name, filterValue: filterValue || undefined, lines, countedBy: profile.fullName || profile.email || 'Petugas Gudang' });
     setLines([]);
   };
 
@@ -53,9 +51,9 @@ export const StockOpnameView: React.FC = () => {
         {(['harian','bulanan','rak','kategori'] as Template[]).map((value) => <button key={value} onClick={() => { setTemplate(value); setLines([]); setFilterValue(''); }} className={`min-h-11 rounded-xl border text-xs font-semibold capitalize ${template === value ? 'border-[#252525] bg-[#252525] text-white' : 'border-[#dedcd6] bg-white text-[#555]'}`}>{value === 'rak' ? 'Per Rak' : value === 'kategori' ? 'Per Kategori' : value}</button>)}
       </div>
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <select value={warehouseId} onChange={(event) => { setWarehouseId(event.target.value); setLines([]); }} className="h-11 rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs font-semibold"><option value="">Pilih warehouse...</option>{warehouses.filter((item) => item.type === 'warehouse' && item.isActive).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+        <div className="flex h-11 items-center rounded-xl border border-[#d8d6cf] bg-[#f7f6f3] px-3 text-xs font-bold text-[#397c31]">{activeWarehouse.name}</div>
         {(template === 'rak' || template === 'kategori') && <select value={filterValue} onChange={(event) => setFilterValue(event.target.value)} className="h-11 rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs"><option value="">Pilih {template}...</option>{(template === 'rak' ? racks : categories).map((value) => <option key={value} value={value}>{value}</option>)}</select>}
-        <button onClick={generateTemplate} disabled={!warehouseId || ((template === 'rak' || template === 'kategori') && !filterValue)} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#72d462] px-4 text-xs font-bold text-[#173614] disabled:bg-[#d9d8d3]"><Plus className="h-4 w-4" />Buat List Opname</button>
+        <button onClick={generateTemplate} disabled={(template === 'rak' || template === 'kategori') && !filterValue} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#72d462] px-4 text-xs font-bold text-[#173614] disabled:bg-[#d9d8d3]"><Plus className="h-4 w-4" />Buat List Opname</button>
       </div>
     </section>
 
