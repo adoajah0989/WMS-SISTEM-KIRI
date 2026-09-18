@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, LogOut, Menu, Package, QrCode, Search, ShieldCheck, X } from 'lucide-react';
+import { Bell, LogOut, Menu, Package, QrCode, Search, ShieldCheck, Warehouse, X } from 'lucide-react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { useAuth } from '../auth/AuthContext';
 import { canScanWarehouse, ROLE_LABELS } from '../../lib/permissions';
@@ -19,7 +19,7 @@ const PAGE_TITLES = {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
   const { profile, signOut } = useAuth();
-  const { activeTab, searchGlobal, setSearchGlobal } = usePurchasing();
+  const { activeTab, searchGlobal, setSearchGlobal, activeWarehouseId, accessibleWarehouses, setActiveWarehouseId } = usePurchasing();
   const [mobileSearch, setMobileSearch] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [title, subtitle] = PAGE_TITLES[activeTab];
@@ -42,6 +42,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
           <input value={searchGlobal} onChange={(event) => setSearchGlobal(event.target.value)} placeholder="Cari SKU, PR, PO, supplier..." className="h-10 w-full rounded-xl border border-[#deddd7] bg-white pl-9 pr-9 text-xs text-[#333] outline-none transition focus:border-[#aaa9a2] focus:ring-4 focus:ring-[#82dd70]/15" />
           {searchGlobal && <button onClick={() => setSearchGlobal('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#96958f]"><X className="h-3.5 w-3.5" /></button>}
         </div>
+
+        <label className="relative flex h-10 min-w-0 max-w-[190px] items-center rounded-xl border border-[#d8d6cf] bg-white pl-8 pr-2 sm:min-w-[170px]">
+          <Warehouse className="pointer-events-none absolute left-2.5 h-4 w-4 text-[#397c31]" />
+          <select value={activeWarehouseId} onChange={(event) => setActiveWarehouseId(event.target.value)} className="h-full min-w-0 flex-1 appearance-none truncate bg-transparent pr-4 text-[10px] font-bold text-[#333] outline-none sm:text-xs" aria-label="Warehouse aktif">
+            {accessibleWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}
+          </select>
+        </label>
 
         <button onClick={() => setMobileSearch((value) => !value)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#deddd7] bg-white text-[#555] lg:hidden" aria-label="Cari"><Search className="h-[18px] w-[18px]" /></button>
         {onOpenScanQR && canScanWarehouse(profile.role) && <button onClick={onOpenScanQR} className="hidden h-10 items-center gap-2 rounded-xl border border-[#deddd7] bg-white px-3 text-xs font-semibold text-[#444] hover:border-[#aaa9a2] sm:flex"><QrCode className="h-4 w-4" /> Scan</button>}

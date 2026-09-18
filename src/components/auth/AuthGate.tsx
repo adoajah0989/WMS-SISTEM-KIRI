@@ -57,7 +57,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
 
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('full_name, role, is_active')
+      .select('full_name, role, is_active, warehouse_ids')
       .eq('id', nextSession.user.id)
       .single();
 
@@ -82,6 +82,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       fullName: profile.full_name || nextSession.user.email || 'Pengguna',
       role: profile.role as AppRole,
       isActive: profile.is_active,
+      warehouseIds: Array.isArray(profile.warehouse_ids) && profile.warehouse_ids.length ? profile.warehouse_ids : ['wh-aceh'],
     });
     setSession(nextSession);
     setReady(true);

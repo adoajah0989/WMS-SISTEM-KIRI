@@ -24,6 +24,7 @@ import {
   INITIAL_STOCK_MOVEMENTS,
 } from '../data/initialData';
 import { recordActivity } from '../services/activityLog';
+import { useAuth } from '../components/auth/AuthContext';
 import {
   calculateWeightedAverageCost,
   getAverageUnitCost,
@@ -36,6 +37,10 @@ interface PurchasingContextType {
   setActiveTab: (tab: ActiveTab) => void;
   searchGlobal: string;
   setSearchGlobal: (query: string) => void;
+  activeWarehouseId: string;
+  activeWarehouse: WarehouseConfig;
+  accessibleWarehouses: WarehouseConfig[];
+  setActiveWarehouseId: (warehouseId: string) => void;
 
   // Master Data
   items: WarehouseItem[];
@@ -136,8 +141,14 @@ const DEFAULT_WAREHOUSES: WarehouseConfig[] = [
 const PurchasingContext = createContext<PurchasingContextType | undefined>(undefined);
 
 export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchGlobal, setSearchGlobal] = useState<string>('');
+  const allowedWarehouseIds = profile.warehouseIds.length ? profile.warehouseIds : ['wh-aceh'];
+  const [activeWarehouseId, setActiveWarehouseIdState] = useState(() => {
+    const saved = localStorage.getItem('kiri_active_warehouse');
+    return saved && allowedWarehouseIds.includes(saved) ? saved : allowedWarehouseIds[0];
+  });
 
   // Automatically reset previous sample data to empty database if not already cleaned
   const initializeCleanState = () => {
@@ -209,6 +220,22 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     const saved = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
     return saved ? JSON.parse(saved) : [];
   });
+  const accessibleWarehouses = warehouses.filter((warehouse) => warehouse.type === 'warehouse' && warehouse.isActive && allowedWarehouseIds.includes(warehouse.id));
+  const activeWarehouse = accessibleWarehouses.find((warehouse) => warehouse.id === activeWarehouseId) || accessibleWarehouses[0] || warehouses.find((warehouse) => warehouse.id === 'wh-aceh') || DEFAULT_WAREHOUSES[1];
+  const setActiveWarehouseId = (warehouseId: string) => {
+    if (!accessibleWarehouses.some((warehouse) => warehouse.id === warehouseId)) return;
+    setActiveWarehouseIdState(warehouseId);
+    localStorage.setItem('kiri_active_warehouse', warehouseId);
+    setSearchGlobal('');
+  };
+
+  useEffect(() => {
+    if (!allowedWarehouseIds.includes(activeWarehouseId)) {
+      const fallback = allowedWarehouseIds[0] || 'wh-aceh';
+      setActiveWarehouseIdState(fallback);
+      localStorage.setItem('kiri_active_warehouse', fallback);
+    }
+  }, [activeWarehouseId, profile.id, profile.warehouseIds.join('|')]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -243,28 +270,29 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
   const generatePRNumber = () => {
     const now = new Date();
     const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const count = requisitions.length + 1;
-    return `PR-${yearMonth}-${String(count).padStart(3, '0')}`;
+    const count = requisitions.filter((record) => (record.warehouseId || 'wh-aceh') === activeWarehouse.id).length + 1;
+    return `PR-${activeWarehouse.code}-${yearMonth}-${String(count).padStart(3, '0')}`;
   };
 
   const generatePONumber = () => {
     const now = new Date();
     const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const count = purchaseOrders.length + 1;
-    return `PO-${yearMonth}-${String(count).padStart(3, '0')}`;
+    const count = purchaseOrders.filter((record) => (record.warehouseId || 'wh-aceh') === activeWarehouse.id).length + 1;
+    return `PO-${activeWarehouse.code}-${yearMonth}-${String(count).padStart(3, '0')}`;
   };
 
   const generateGRNNumber = () => {
     const now = new Date();
     const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const count = goodsReceipts.length + 1;
-    return `GRN-${yearMonth}-${String(count).padStart(3, '0')}`;
+    const count = goodsReceipts.filter((record) => (record.warehouseId || 'wh-aceh') === activeWarehouse.id).length + 1;
+    return `GR-${activeWarehouse.code}-${yearMonth}-${String(count).padStart(3, '0')}`;
   };
 
   // Warehouse Item Functions
   const addItem = (itemData: Omit<WarehouseItem, 'id' | 'updatedAt'>): WarehouseItem => {
     const newItem: WarehouseItem = {
       ...itemData,
+      warehouseId: itemData.warehouseId || activeWarehouse.id,
       id: `item-${Date.now()}`,
       updatedAt: new Date().toISOString(),
     };
@@ -278,6 +306,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         itemId: newItem.id,
         itemSku: newItem.sku,
         itemName: newItem.name,
+        warehouseId: newItem.warehouseId,
         type: 'penyesuaian_masuk',
         quantity: newItem.currentStock,
         previousStock: 0,
@@ -350,6 +379,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       itemId: targetItem.id,
       itemSku: targetItem.sku,
       itemName: targetItem.name,
+      warehouseId: targetItem.warehouseId || activeWarehouse.id,
       type,
       quantity: effectiveQty,
       previousStock,
@@ -422,6 +452,8 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
   ): PurchaseRequisition => {
     const newPR: PurchaseRequisition = {
       ...prData,
+      warehouseId: prData.warehouseId || activeWarehouse.id,
+      warehouseName: prData.warehouseName || activeWarehouse.name,
       id: `pr-${Date.now()}`,
       prNumber: generatePRNumber(),
       status: prData.status || 'menunggu_persetujuan',
@@ -502,6 +534,8 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     const newPO: PurchaseOrder = {
       id: `po-${Date.now()}`,
       poNumber: generatePONumber(),
+      warehouseId: targetPR.warehouseId || activeWarehouse.id,
+      warehouseName: targetPR.warehouseName || activeWarehouse.name,
       prId: targetPR.id,
       prNumber: targetPR.prNumber,
       supplierId: targetSupplier.id,
@@ -555,6 +589,8 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
   const createPO = (poData: Omit<PurchaseOrder, 'id' | 'poNumber' | 'createdAt'>): PurchaseOrder => {
     const newPO: PurchaseOrder = {
       ...poData,
+      warehouseId: poData.warehouseId || activeWarehouse.id,
+      warehouseName: poData.warehouseName || activeWarehouse.name,
       id: `po-${Date.now()}`,
       poNumber: generatePONumber(),
       createdAt: new Date().toISOString(),
@@ -606,6 +642,8 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
 
     const newGRN: GoodsReceipt = {
       ...grnData,
+      warehouseId: targetPO?.warehouseId || grnData.warehouseId || activeWarehouse.id,
+      warehouseName: targetPO?.warehouseName || grnData.warehouseName || activeWarehouse.name,
       id: `grn-${Date.now()}`,
       grnNumber,
       totalItemsReceived,
@@ -676,6 +714,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
             itemId: existingItem.id,
             itemSku: existingItem.sku,
             itemName: existingItem.name,
+            warehouseId: newGRN.warehouseId,
             type: 'penerimaan_po',
             quantity: stockQtyToAdd,
             previousStock: existingItem.currentStock,
@@ -763,13 +802,15 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const createStockOpname = (data: Omit<StockOpname, 'id' | 'opnameNumber' | 'createdAt' | 'status'>): StockOpname => {
     const now = new Date();
-    const opnameNumber = `SO-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(stockOpnames.length + 1).padStart(3, '0')}`;
+    const warehouseCode = warehouses.find((warehouse) => warehouse.id === data.warehouseId)?.code || activeWarehouse.code;
+    const count = stockOpnames.filter((record) => record.warehouseId === data.warehouseId).length + 1;
+    const opnameNumber = `SO-${warehouseCode}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(count).padStart(3, '0')}`;
     const completed: StockOpname = { ...data, id: `opname-${Date.now()}`, opnameNumber, status: 'selesai', createdAt: now.toISOString() };
     const movements: StockMovement[] = [];
     setItems((current) => current.map((item) => {
       const line = data.lines.find((entry) => entry.itemId === item.id);
       if (!line || line.physicalStock === item.currentStock) return item;
-      movements.push({ id: `mov-op-${Date.now()}-${item.id}`, itemId: item.id, itemSku: item.sku, itemName: item.name, type: 'opname_adjustment', quantity: line.physicalStock - item.currentStock, previousStock: item.currentStock, newStock: line.physicalStock, referenceNo: opnameNumber, date: now.toISOString(), notes: line.notes || `Penyesuaian stock opname ${data.template}`, operator: data.countedBy });
+      movements.push({ id: `mov-op-${Date.now()}-${item.id}`, itemId: item.id, itemSku: item.sku, itemName: item.name, warehouseId: data.warehouseId, type: 'opname_adjustment', quantity: line.physicalStock - item.currentStock, previousStock: item.currentStock, newStock: line.physicalStock, referenceNo: opnameNumber, date: now.toISOString(), notes: line.notes || `Penyesuaian stock opname ${data.template}`, operator: data.countedBy });
       return { ...item, currentStock: line.physicalStock, updatedAt: now.toISOString() };
     }));
     if (movements.length) setStockMovements((current) => [...movements, ...current]);
@@ -785,14 +826,16 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       return null;
     }
     const now = new Date();
-    const transferNumber = `TRF-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(storeTransfers.length + 1).padStart(3, '0')}`;
+    const sourceCode = warehouses.find((warehouse) => warehouse.id === data.sourceWarehouseId)?.code || 'SRC';
+    const destinationCode = warehouses.find((warehouse) => warehouse.id === data.destinationStoreId)?.code || 'DST';
+    const transferNumber = `TRF-${sourceCode}-${destinationCode}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(storeTransfers.length + 1).padStart(3, '0')}`;
     const transfer: StoreTransfer = { ...data, id: `transfer-${Date.now()}`, transferNumber, status: 'dikirim', createdAt: now.toISOString() };
     const movements: StockMovement[] = [];
     setItems((current) => current.map((item) => {
       const line = data.items.find((entry) => entry.itemId === item.id);
       if (!line) return item;
       const nextStock = item.currentStock - line.quantity;
-      movements.push({ id: `mov-trf-${Date.now()}-${item.id}`, itemId: item.id, itemSku: item.sku, itemName: item.name, type: 'transfer_keluar', quantity: -line.quantity, previousStock: item.currentStock, newStock: nextStock, referenceNo: transferNumber, date: now.toISOString(), notes: `Dikirim ke ${data.destinationStoreName}. Belum menjadi stok store sampai dikonfirmasi.`, operator: data.sentBy });
+      movements.push({ id: `mov-trf-${Date.now()}-${item.id}`, itemId: item.id, itemSku: item.sku, itemName: item.name, warehouseId: data.sourceWarehouseId, type: 'transfer_keluar', quantity: -line.quantity, previousStock: item.currentStock, newStock: nextStock, referenceNo: transferNumber, date: now.toISOString(), notes: `Dikirim ke ${data.destinationStoreName}. Belum menjadi stok store sampai dikonfirmasi.`, operator: data.sentBy });
       return { ...item, currentStock: nextStock, updatedAt: now.toISOString() };
     }));
     setStockMovements((current) => [...movements, ...current]);
@@ -802,9 +845,30 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   const confirmStoreTransfer = (id: string, receivedBy: string) => {
-    setStoreTransfers((current) => current.map((transfer) => transfer.id === id ? { ...transfer, status: 'diterima', receivedBy, receivedAt: new Date().toISOString() } : transfer));
     const transfer = storeTransfers.find((entry) => entry.id === id);
-    void recordActivity('status', 'transfer', id, `Konfirmasi penerimaan ${transfer?.transferNumber || id}`, { receivedBy });
+    if (!transfer) return;
+    const destination = warehouses.find((warehouse) => warehouse.id === transfer.destinationStoreId);
+    if (destination?.type === 'warehouse') {
+      const now = new Date().toISOString();
+      const inboundMovements: StockMovement[] = [];
+      setItems((current) => {
+        const next = [...current];
+        transfer.items.forEach((line) => {
+          const source = current.find((item) => item.id === line.itemId);
+          if (!source) return;
+          const targetIndex = next.findIndex((item) => (item.warehouseId || 'wh-aceh') === destination.id && item.sku.toLowerCase() === source.sku.toLowerCase());
+          const previousStock = targetIndex >= 0 ? next[targetIndex].currentStock : 0;
+          const target = targetIndex >= 0 ? next[targetIndex] : { ...source, id: `item-${destination.code.toLowerCase()}-${Date.now()}-${line.itemId}`, warehouseId: destination.id, currentStock: 0, warehouseLocation: 'Penerimaan transfer', updatedAt: now };
+          const updated = { ...target, currentStock: previousStock + line.quantity, updatedAt: now };
+          if (targetIndex >= 0) next[targetIndex] = updated; else next.unshift(updated);
+          inboundMovements.push({ id: `mov-trf-in-${Date.now()}-${line.itemId}`, itemId: updated.id, itemSku: updated.sku, itemName: updated.name, warehouseId: destination.id, type: 'transfer_masuk', quantity: line.quantity, previousStock, newStock: updated.currentStock, referenceNo: transfer.transferNumber, date: now, notes: `Diterima dari ${transfer.sourceWarehouseName}`, operator: receivedBy });
+        });
+        return next;
+      });
+      if (inboundMovements.length) setStockMovements((current) => [...inboundMovements, ...current]);
+    }
+    setStoreTransfers((current) => current.map((entry) => entry.id === id ? { ...entry, status: 'diterima', receivedBy, receivedAt: new Date().toISOString() } : entry));
+    void recordActivity('status', 'transfer', id, `Konfirmasi penerimaan ${transfer.transferNumber}`, { receivedBy, destination: transfer.destinationStoreName });
   };
 
   // Analytics Helpers
@@ -846,6 +910,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
       intermediateConversionRatio: imp.intermediateConversionRatio && imp.intermediateConversionRatio > 0 ? imp.intermediateConversionRatio : undefined,
       purchaseUnit: imp.purchaseUnit || imp.unit || 'Pcs',
       conversionRatio: imp.conversionRatio && imp.conversionRatio > 0 ? imp.conversionRatio : 1,
+      warehouseId: imp.warehouseId || activeWarehouse.id,
       currentStock: typeof imp.currentStock === 'number' ? imp.currentStock : 0,
       minStock: typeof imp.minStock === 'number' ? imp.minStock : 10,
       warehouseLocation: imp.warehouseLocation || 'Gudang Utama',
@@ -976,6 +1041,15 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     URL.revokeObjectURL(url);
   };
 
+  const belongsToActiveWarehouse = (record: { warehouseId?: string }) => (record.warehouseId || 'wh-aceh') === activeWarehouse.id;
+  const scopedItems = items.filter(belongsToActiveWarehouse);
+  const scopedRequisitions = requisitions.filter(belongsToActiveWarehouse);
+  const scopedPurchaseOrders = purchaseOrders.filter(belongsToActiveWarehouse);
+  const scopedGoodsReceipts = goodsReceipts.filter(belongsToActiveWarehouse);
+  const scopedStockMovements = stockMovements.filter(belongsToActiveWarehouse);
+  const scopedStockOpnames = stockOpnames.filter((record) => record.warehouseId === activeWarehouse.id);
+  const scopedTransfers = storeTransfers.filter((record) => record.sourceWarehouseId === activeWarehouse.id || record.destinationStoreId === activeWarehouse.id);
+
   return (
     <PurchasingContext.Provider
       value={{
@@ -983,14 +1057,18 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         setActiveTab,
         searchGlobal,
         setSearchGlobal,
-        items,
+        activeWarehouseId: activeWarehouse.id,
+        activeWarehouse,
+        accessibleWarehouses,
+        setActiveWarehouseId,
+        items: scopedItems,
         suppliers,
-        requisitions,
-        purchaseOrders,
-        goodsReceipts,
-        stockMovements,
-        stockOpnames,
-        storeTransfers,
+        requisitions: scopedRequisitions,
+        purchaseOrders: scopedPurchaseOrders,
+        goodsReceipts: scopedGoodsReceipts,
+        stockMovements: scopedStockMovements,
+        stockOpnames: scopedStockOpnames,
+        storeTransfers: scopedTransfers,
         warehouses,
         inventoryCategories,
         addItem,
