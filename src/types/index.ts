@@ -18,6 +18,7 @@ export interface WarehouseItem {
   intermediateConversionRatio?: number; // 1 intermediateUnit = X base units
   purchaseUnit?: string; // Level 3: purchase unit (e.g. Dus)
   conversionRatio?: number; // 1 purchaseUnit = X base units
+  warehouseId?: string; // Defaults legacy data to Warehouse Aceh
   currentStock: number; // in base units
   minStock: number;
   warehouseLocation: string; // e.g. Rak A-01, Gudang Utama
@@ -34,6 +35,7 @@ export interface StockMovement {
   itemId: string;
   itemSku: string;
   itemName: string;
+  warehouseId?: string;
   type: MovementType;
   quantity: number; // positive or negative
   previousStock: number;
@@ -74,7 +76,9 @@ export interface PRItem {
 
 export interface PurchaseRequisition {
   id: string;
-  prNumber: string; // PR-202608-001
+  prNumber: string; // PR-ACH-202608-001
+  warehouseId?: string;
+  warehouseName?: string;
   requestDate: string;
   requiredDate: string;
   department: string;
@@ -116,7 +120,9 @@ export interface POItem {
 
 export interface PurchaseOrder {
   id: string;
-  poNumber: string; // PO-202608-001
+  poNumber: string; // PO-ACH-202608-001
+  warehouseId?: string;
+  warehouseName?: string;
   prId?: string;
   prNumber?: string;
   supplierId: string;
@@ -163,7 +169,9 @@ export interface GRNItem {
 
 export interface GoodsReceipt {
   id: string;
-  grnNumber: string; // GRN-202608-001
+  grnNumber: string; // GRN-ACH-202608-001
+  warehouseId?: string;
+  warehouseName?: string;
   poId: string;
   poNumber: string;
   supplierId: string;
