@@ -9,6 +9,7 @@ export interface AuthProfile {
   fullName: string;
   role: AppRole;
   isActive: boolean;
+  warehouseIds: string[];
 }
 
 interface AuthContextValue {
