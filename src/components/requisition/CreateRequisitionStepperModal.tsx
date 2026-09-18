@@ -61,6 +61,16 @@ const ITEM_CATEGORIES = [
 
 const COMMON_UNITS = ['Pcs', 'Box', 'Dus', 'Kg', 'Liter', 'Unit', 'Rim', 'Roll', 'Meter', 'Pack', 'Kaleng'];
 
+const createEmptyPRItem = (suffix = '0'): PRItem => ({
+  id: `pri-${Date.now()}-${suffix}`,
+  itemName: '',
+  category: '',
+  unit: '',
+  quantity: Number.NaN,
+  estimatedUnitPrice: 0,
+  notes: '',
+});
+
 export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperModalProps> = ({
   isOpen,
   onClose,
@@ -77,29 +87,15 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   const [validationError, setValidationError] = useState<string | null>(null);
 
   // Form Fields - Step 1: Detail
-  const [department, setDepartment] = useState('Gudang & Logistik');
-  const [requestorName, setRequestorName] = useState(profile.fullName || profile.email || '');
-  const [requiredDate, setRequiredDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
-  });
+  const [department, setDepartment] = useState('');
+  const [requestorName, setRequestorName] = useState('');
+  const [requiredDate, setRequiredDate] = useState('');
   const [priority, setPriority] = useState<PriorityLevel>('sedang');
   const [purpose, setPurpose] = useState('');
   const [notes, setNotes] = useState('');
 
   // Form Fields - Step 2: Barang
-  const [items, setItems] = useState<PRItem[]>([
-    {
-      id: `pri-${Date.now()}-0`,
-      itemName: '',
-      category: 'Kemasan & Packaging',
-      unit: 'Pcs',
-      quantity: 1,
-      estimatedUnitPrice: 0,
-      notes: '',
-    },
-  ]);
+  const [items, setItems] = useState<PRItem[]>(() => [createEmptyPRItem()]);
   const [stockPickerOpen, setStockPickerOpen] = useState(true);
   const [stockSearch, setStockSearch] = useState('');
   const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'empty' | 'critical' | 'low'>('all');
@@ -241,34 +237,13 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
 
   // Item row operations
   const handleAddItem = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        id: `pri-${Date.now()}-${prev.length}`,
-        itemName: '',
-        category: 'Kemasan & Packaging',
-        unit: 'Pcs',
-        quantity: 1,
-        estimatedUnitPrice: 0,
-        notes: '',
-      },
-    ]);
+    setItems((prev) => [...prev, createEmptyPRItem(String(prev.length))]);
   };
 
   const handleRemoveItem = (index: number) => {
     if (items.length <= 1) {
       // If only one, just clear it instead of removing row
-      setItems([
-        {
-          id: `pri-${Date.now()}-reset`,
-          itemName: '',
-          category: 'Kemasan & Packaging',
-          unit: 'Pcs',
-          quantity: 1,
-          estimatedUnitPrice: 0,
-          notes: '',
-        },
-      ]);
+      setItems([createEmptyPRItem('reset')]);
       return;
     }
     setItems((prev) => prev.filter((_, idx) => idx !== index));
@@ -430,25 +405,24 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
 
   // Reset form
   const handleResetForm = () => {
-    setRequestorName(profile.fullName || profile.email || '');
-    setDepartment('Gudang & Logistik');
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    setRequiredDate(d.toISOString().split('T')[0]);
+    setRequestorName('');
+    setDepartment('');
+    setRequiredDate('');
     setPriority('sedang');
     setPurpose('');
     setNotes('');
-    setItems([
-      {
-        id: `pri-${Date.now()}-0`,
-        itemName: '',
-        category: 'Kemasan & Packaging',
-        unit: 'Pcs',
-        quantity: 1,
-        estimatedUnitPrice: 0,
-        notes: '',
-      },
-    ]);
+    setItems([createEmptyPRItem()]);
+    setSelectedStockIds([]);
+    setExpandedItemIds([]);
+    setCatalogQueries({});
+    setActiveCatalogItemId(null);
+    setActiveItemHintId(null);
+    setStockSearch('');
+    setStockStatusFilter('all');
+    setStockCategoryFilter('all');
+    setStockRackFilter('all');
+    setStockPickerOpen(true);
+    setConfirmedAgreement(true);
     setCurrentStep(1);
     setShowOptionsMenu(false);
     setValidationError(null);
@@ -727,6 +701,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                     }}
                     className="w-full pl-10 pr-9 py-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl text-slate-800 font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition shadow-2xs"
                   >
+                    <option value="">Pilih departemen...</option>
                     {DEPARTMENTS.map((dept) => (
                       <option key={dept} value={dept}>
                         {dept}
@@ -892,14 +867,6 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleAddItem}
-                  className="px-3 py-1.5 bg-emerald-50 active:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-2xs transition"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Tambah Item</span>
-                </button>
               </div>
 
               <div className="grid items-start gap-2.5 xl:grid-cols-[minmax(320px,0.42fr)_minmax(0,1fr)]">
@@ -1000,14 +967,14 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                         <div>
                           <label className="mb-1 block text-[9px] font-medium leading-none text-[#77766f] sm:text-[10px]">Jumlah</label>
                           <div className="flex h-8 items-center overflow-hidden rounded-lg border border-[#d8d6cf] bg-white">
-                            <button type="button" onClick={() => handleUpdateItem(index, 'quantity', Math.max(1, (item.quantity || 1) - 1))} className="flex h-full w-9 shrink-0 items-center justify-center text-[#777] active:bg-[#f1f0ec]" aria-label="Kurangi jumlah"><Minus className="h-3.5 w-3.5" /></button>
-                            <NumberInput type="number" min="1" value={item.quantity} onChange={(e) => handleUpdateItem(index, 'quantity', parseFloat(e.target.value) || 1)} className="min-w-0 flex-1 text-center text-xs font-bold text-[#292929] outline-none" />
-                            <button type="button" onClick={() => handleUpdateItem(index, 'quantity', (item.quantity || 1) + 1)} className="flex h-full w-9 shrink-0 items-center justify-center text-[#292929] active:bg-[#f1f0ec]" aria-label="Tambah jumlah"><Plus className="h-3.5 w-3.5" /></button>
+                            <button type="button" onClick={() => handleUpdateItem(index, 'quantity', Math.max(1, (Number.isFinite(item.quantity) ? item.quantity : 1) - 1))} className="flex h-full w-9 shrink-0 items-center justify-center text-[#777] active:bg-[#f1f0ec]" aria-label="Kurangi jumlah"><Minus className="h-3.5 w-3.5" /></button>
+                            <NumberInput type="number" min="1" placeholder="0" value={Number.isFinite(item.quantity) ? item.quantity : ''} onChange={(e) => handleUpdateItem(index, 'quantity', e.target.value === '' ? Number.NaN : Number(e.target.value))} className="min-w-0 flex-1 text-center text-xs font-bold text-[#292929] outline-none" />
+                            <button type="button" onClick={() => handleUpdateItem(index, 'quantity', (Number.isFinite(item.quantity) ? item.quantity : 0) + 1)} className="flex h-full w-9 shrink-0 items-center justify-center text-[#292929] active:bg-[#f1f0ec]" aria-label="Tambah jumlah"><Plus className="h-3.5 w-3.5" /></button>
                           </div>
                         </div>
                         <div>
                           <label className="mb-1 block text-[9px] font-medium leading-none text-[#77766f] sm:text-[10px]">Satuan</label>
-                          <select value={item.unit} onChange={(e) => handleUpdateItemUnit(index, e.target.value)} className="h-8 w-full rounded-lg border border-[#d8d6cf] bg-white px-2.5 text-xs font-medium text-[#292929] sm:h-9">{getItemUnitOptions(item).map((option) => <option key={option.unit} value={option.unit}>{option.unit}{option.ratio > 1 ? ` (1 = ${option.ratio} ${item.stockUnit || stockItem?.unit || 'unit dasar'})` : ''}</option>)}</select>
+                          <select value={item.unit} onChange={(e) => handleUpdateItemUnit(index, e.target.value)} className="h-8 w-full rounded-lg border border-[#d8d6cf] bg-white px-2.5 text-xs font-medium text-[#292929] sm:h-9"><option value="">Pilih</option>{getItemUnitOptions(item).map((option) => <option key={option.unit} value={option.unit}>{option.unit}{option.ratio > 1 ? ` (1 = ${option.ratio} ${item.stockUnit || stockItem?.unit || 'unit dasar'})` : ''}</option>)}</select>
                         </div>
                       </div>
 
@@ -1077,6 +1044,11 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                   );
                 })}
               </div>
+
+              <button type="button" onClick={handleAddItem} className="flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#9edc92] bg-[#f4fbf2] px-3 py-2 text-xs font-bold text-[#397c31] transition hover:bg-[#eaf7e7] active:scale-[0.99]">
+                <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                <span>Tambah Item</span>
+              </button>
 
               <div className="p-3.5 bg-[#fff7df] rounded-2xl border border-[#ead9a7] flex items-center justify-between">
                 <div>
