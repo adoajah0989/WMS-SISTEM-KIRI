@@ -6,7 +6,7 @@ export type POStatus = 'draft' | 'diterbitkan' | 'terkirim' | 'diterima_sebagian
 export type PaymentTerm = 'cash' | 'cod' | 'net_7' | 'net_14' | 'net_30' | 'dp_50_net_30';
 
 export type StockCondition = 'baik' | 'rusak' | 'kurang';
-export type MovementType = 'penerimaan_po' | 'penyesuaian_masuk' | 'penyesuaian_keluar' | 'pengambilan_internal' | 'retur' | 'opname_adjustment' | 'transfer_keluar';
+export type MovementType = 'penerimaan_po' | 'penyesuaian_masuk' | 'penyesuaian_keluar' | 'pengambilan_internal' | 'retur' | 'opname_adjustment' | 'transfer_keluar' | 'transfer_masuk';
 
 export interface WarehouseItem {
   id: string;
