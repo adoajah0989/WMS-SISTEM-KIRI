@@ -86,6 +86,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
   const approvedPRs = requisitions.filter((pr) => pr.status === 'disetujui' && pr.pricingStatus === 'harga_diterima');
   const [sourceMode, setSourceMode] = useState<'pr' | 'direct'>('pr');
   const [sourcePRId, setSourcePRId] = useState('');
+  const [prSearchQuery, setPrSearchQuery] = useState('');
   const [itemSearchQueries, setItemSearchQueries] = useState<Record<string, string>>({});
   const [activeItemSearchId, setActiveItemSearchId] = useState<string | null>(null);
 
@@ -148,6 +149,11 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
     const selected = approvedPRs.find((pr) => pr.id === prId) || null;
     setPrefilledPR(selected);
   };
+
+  const filteredApprovedPRs = approvedPRs.filter((pr) => {
+    const query = prSearchQuery.trim().toLowerCase();
+    return !query || pr.prNumber.toLowerCase().includes(query) || (pr.quotedSupplierName || '').toLowerCase().includes(query) || pr.purpose.toLowerCase().includes(query);
+  });
 
   // Calculations
   const calculatedSubtotal = formItems.reduce((acc, curr) => acc + (curr.subtotal || 0), 0);
@@ -646,9 +652,10 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                 <div className="rounded-xl border border-[#bce8b4] bg-[#eaf8e7] p-2 text-[#397c31]">
                   <ShoppingCart className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm sm:text-base">
-                  {prefilledPR ? `Terbitkan PO (${prefilledPR.prNumber})` : 'Terbitkan PO Baru'}
-                </h3>
+                <div>
+                  <h3 className="text-sm font-bold sm:text-base">{prefilledPR ? `Terbitkan PO (${prefilledPR.prNumber})` : 'Buat Purchase Order'}</h3>
+                  <p className="mt-0.5 text-[10px] font-normal text-[#85847e]">Pilih sumber, periksa barang, lalu terbitkan pesanan.</p>
+                </div>
               </div>
               <button
                 onClick={() => {
@@ -661,8 +668,8 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSubmitPO} className="grid flex-1 grid-cols-1 content-start gap-3 overflow-y-auto bg-[#f7f8fa] p-3 pb-28 sm:p-5 sm:pb-28 lg:grid-cols-12">
-              <section className="rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-4">
+            <form onSubmit={handleSubmitPO} className="grid flex-1 grid-cols-1 content-start gap-3 overflow-y-auto bg-[#f7f8fa] p-3 pb-28 sm:p-5 sm:pb-28 lg:grid-cols-12 lg:grid-rows-[auto_auto_auto_1fr_auto]">
+              <section className="rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-4 lg:col-start-1 lg:row-start-1">
                 <div className="flex items-start justify-between gap-3">
                   <div><p className="text-xs font-bold text-[#333]">Sumber purchase order</p><p className="mt-0.5 text-[10px] text-[#85847e]">Gunakan PR agar barang dan qty terisi otomatis.</p></div>
                   <div className="flex rounded-xl border border-[#dfddd7] bg-white p-1">
@@ -672,17 +679,26 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                 </div>
 
                 {sourceMode === 'pr' && <div className="mt-3">
-                  {approvedPRs.length ? <select value={sourcePRId} onChange={(event) => handleSelectSourcePR(event.target.value)} className="h-11 w-full rounded-xl border border-[#d8d6cf] bg-white px-3 text-xs font-semibold text-[#444] outline-none focus:border-[#76ca67]">
-                    <option value="">Pilih PR yang sudah disetujui...</option>
-                    {approvedPRs.map((pr) => <option key={pr.id} value={pr.id}>{pr.prNumber} · {pr.quotedSupplierName || 'Supplier'} · {pr.items.length} barang · {formatRupiah(pr.totalEstimatedAmount)}</option>)}
-                  </select> : <div className="rounded-xl bg-[#fff2d8] p-3 text-xs text-[#8c6417]">Belum ada PR yang sudah disetujui dan memiliki penawaran harga supplier.</div>}
+                  {approvedPRs.length ? <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#999892]" />
+                      <input value={prSearchQuery} onChange={(event) => setPrSearchQuery(event.target.value)} placeholder="Cari nomor PR atau supplier..." className="h-10 w-full rounded-xl border border-[#d8d6cf] bg-white pl-9 pr-3 text-xs outline-none focus:border-[#76ca67]" />
+                    </div>
+                    <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+                      {filteredApprovedPRs.map((pr) => <button key={pr.id} type="button" onClick={() => handleSelectSourcePR(pr.id)} className={`w-full rounded-xl border p-2.5 text-left transition ${sourcePRId === pr.id ? 'border-[#35b978] bg-[#effaf3]' : 'border-[#e3e1da] bg-white hover:border-[#9edc92]'}`}>
+                        <span className="flex items-center justify-between gap-2"><strong className="truncate text-[11px] text-[#333]">{pr.prNumber}</strong><span className="shrink-0 rounded-lg bg-[#f3f2ef] px-2 py-0.5 text-[9px] font-bold text-[#666]">{pr.items.length} item</span></span>
+                        <span className="mt-1 block truncate text-[10px] text-[#85847e]">{pr.quotedSupplierName || 'Supplier belum dipilih'} · {formatRupiah(pr.totalEstimatedAmount)}</span>
+                      </button>)}
+                      {!filteredApprovedPRs.length && <div className="rounded-xl border border-dashed border-[#d8d6cf] px-3 py-5 text-center text-[10px] text-[#85847e]">PR tidak ditemukan.</div>}
+                    </div>
+                  </div> : <div className="rounded-xl bg-[#fff2d8] p-3 text-xs text-[#8c6417]">Belum ada PR yang sudah disetujui dan memiliki penawaran harga supplier.</div>}
                   {prefilledPR && <div className="mt-2 flex items-center justify-between rounded-xl bg-[#e8f7e4] px-3 py-2.5 text-[11px] text-[#356d2f]"><span><strong>{prefilledPR.items.length} barang</strong> sudah dimuat otomatis</span><span>{prefilledPR.prNumber}</span></div>}
                 </div>}
                 {sourceMode === 'direct' && <div className="mt-3 rounded-xl bg-[#eaf1ff] p-3 text-[11px] leading-relaxed text-[#315f9d]">Mode ini tetap tersedia untuk pembelian khusus tanpa PR. Pilih barang dari master gudang agar satuan, rasio, dan harga terakhir terisi otomatis.</div>}
               </section>
 
               {/* SECTION 1: Supplier & Tanggal Kirim */}
-              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-8">
+              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-4 lg:col-start-1 lg:row-start-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
                   <Building2 className="w-4 h-4 text-indigo-600" />
                   <span>Vendor & Jadwal Kirim</span>
@@ -756,7 +772,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* SECTION 2: Daftar Barang yang Dipesan */}
-              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-12">
+              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-8 lg:col-start-5 lg:row-span-4 lg:row-start-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
                     <Package className="w-4 h-4 text-indigo-600" />
@@ -937,7 +953,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* SECTION 3: Ringkasan Nilai PO & PPN */}
-              <div className="space-y-2.5 rounded-2xl border border-[#dfddd7] bg-white p-4 lg:col-span-5">
+              <div className="space-y-2.5 rounded-2xl border border-[#dfddd7] bg-white p-4 lg:col-span-4 lg:col-start-1 lg:row-start-3">
                 <div className="flex justify-between items-center text-xs text-slate-600">
                   <span>Subtotal Barang ({formItems.reduce((s, i) => s + (i.quantity || 0), 0)} unit):</span>
                   <span className="font-semibold text-slate-900">{formatRupiah(calculatedSubtotal)}</span>
@@ -978,7 +994,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* Collapsible: Pengaturan Tambahan (Opsional) */}
-              <div className="overflow-hidden rounded-2xl border border-[#dfddd7] bg-white lg:col-span-7">
+              <div className="overflow-hidden rounded-2xl border border-[#dfddd7] bg-white lg:col-span-4 lg:col-start-1 lg:row-start-4">
                 <button
                   type="button"
                   onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
