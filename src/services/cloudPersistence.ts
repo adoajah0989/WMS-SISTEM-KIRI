@@ -13,6 +13,8 @@ export const STORAGE_KEYS = {
   CATEGORIES: 'kiri_inventory_categories',
 } as const;
 
+const SNAPSHOT_VERSION_KEY = 'kiri_app_state_version';
+
 export type CloudSnapshot = Record<(typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS], unknown[]>;
 
 export const readLocalSnapshot = (): CloudSnapshot =>
@@ -37,19 +39,32 @@ export const restoreCloudSnapshot = async () => {
   if (!supabase) return;
   const { data, error } = await supabase
     .from('app_state')
-    .select('payload')
+    .select('payload, version')
     .eq('id', 1)
     .maybeSingle();
 
   if (error) throw error;
-  if (data?.payload) writeLocalSnapshot(data.payload as Partial<CloudSnapshot>);
+  if (data?.payload) {
+    writeLocalSnapshot(data.payload as Partial<CloudSnapshot>);
+    localStorage.setItem(SNAPSHOT_VERSION_KEY, String(data.version ?? 0));
+  }
 };
 
 export const saveCloudSnapshot = async (snapshot: CloudSnapshot) => {
   if (!supabase) return;
-  const { error } = await supabase
-    .from('app_state')
-    .upsert({ id: 1, payload: snapshot, updated_at: new Date().toISOString() });
+
+  const expectedVersion = Number(localStorage.getItem(SNAPSHOT_VERSION_KEY) || '0');
+  const { data, error } = await supabase.rpc('save_app_state', {
+    p_expected_version: expectedVersion,
+    p_payload: snapshot,
+  });
 
   if (error) throw error;
+
+  const saved = Array.isArray(data) ? data[0] : data;
+  if (!saved?.new_version) {
+    throw new Error('SYNC_VERSION_CONFLICT');
+  }
+
+  localStorage.setItem(SNAPSHOT_VERSION_KEY, String(saved.new_version));
 };
