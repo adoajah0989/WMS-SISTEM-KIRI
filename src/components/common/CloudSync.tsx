@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePurchasing } from '../../context/PurchasingContext';
-import { saveCloudSnapshot, STORAGE_KEYS } from '../../services/cloudPersistence';
+import { readLocalSnapshot, saveCloudSnapshot } from '../../services/cloudPersistence';
 
 export const CloudSync: React.FC = () => {
   const { items, suppliers, requisitions, purchaseOrders, goodsReceipts, stockMovements, stockOpnames, storeTransfers, warehouses, inventoryCategories } = usePurchasing();
@@ -15,22 +15,11 @@ export const CloudSync: React.FC = () => {
 
     const timer = window.setTimeout(async () => {
       try {
-        await saveCloudSnapshot({
-          [STORAGE_KEYS.ITEMS]: items,
-          [STORAGE_KEYS.SUPPLIERS]: suppliers,
-          [STORAGE_KEYS.PRS]: requisitions,
-          [STORAGE_KEYS.POS]: purchaseOrders,
-          [STORAGE_KEYS.GRNS]: goodsReceipts,
-          [STORAGE_KEYS.MOVEMENTS]: stockMovements,
-          [STORAGE_KEYS.OPNAMES]: stockOpnames,
-          [STORAGE_KEYS.TRANSFERS]: storeTransfers,
-          [STORAGE_KEYS.WAREHOUSES]: warehouses,
-          [STORAGE_KEYS.CATEGORIES]: inventoryCategories,
-        });
+        await saveCloudSnapshot(readLocalSnapshot());
         setSyncError('');
       } catch (error) {
         console.error('Supabase sync failed', error);
-        setSyncError('Data belum tersinkron ke server. Periksa koneksi internet.');
+        setSyncError(error instanceof Error && error.message === 'SYNC_VERSION_CONFLICT' ? 'Data berubah di perangkat lain. Muat ulang sebelum melanjutkan.' : 'Data belum tersinkron ke server. Data lokal tetap aman.');
       }
     }, 700);
 
