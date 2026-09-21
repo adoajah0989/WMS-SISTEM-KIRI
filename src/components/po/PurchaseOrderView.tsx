@@ -638,12 +638,12 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
 
       {/* Modal: Buat PO Baru (Simple & Streamlined) */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-6 overflow-hidden flex flex-col max-h-[92vh] border border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-0 backdrop-blur-xs md:left-[248px] md:top-16 md:bg-[#f7f8fa] md:backdrop-blur-none">
+          <div className="flex h-full max-h-none w-full max-w-[1600px] flex-col overflow-hidden bg-white shadow-2xl md:rounded-none md:border-0 md:shadow-none">
             {/* Modal Header */}
-            <div className="bg-slate-900 text-white px-5 sm:px-6 py-3.5 flex items-center justify-between">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#e4e7ec] bg-white px-4 py-3 text-[#242424] sm:px-6">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-indigo-500/20 rounded-lg text-indigo-400">
+                <div className="rounded-xl border border-[#bce8b4] bg-[#eaf8e7] p-2 text-[#397c31]">
                   <ShoppingCart className="w-5 h-5" />
                 </div>
                 <h3 className="font-bold text-sm sm:text-base">
@@ -655,14 +655,14 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                   setIsCreateModalOpen(false);
                   setPrefilledPR(null);
                 }}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition text-lg font-bold"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold text-[#77766f] transition hover:bg-[#f0efeb] hover:text-[#222]"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSubmitPO} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
-              <section className="rounded-2xl border border-[#dfddd7] bg-[#faf9f6] p-3 sm:p-4">
+            <form onSubmit={handleSubmitPO} className="grid flex-1 grid-cols-1 content-start gap-3 overflow-y-auto bg-[#f7f8fa] p-3 pb-28 sm:p-5 sm:pb-28 lg:grid-cols-12">
+              <section className="rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-4">
                 <div className="flex items-start justify-between gap-3">
                   <div><p className="text-xs font-bold text-[#333]">Sumber purchase order</p><p className="mt-0.5 text-[10px] text-[#85847e]">Gunakan PR agar barang dan qty terisi otomatis.</p></div>
                   <div className="flex rounded-xl border border-[#dfddd7] bg-white p-1">
@@ -682,10 +682,10 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </section>
 
               {/* SECTION 1: Supplier & Tanggal Kirim */}
-              <div className="bg-slate-50/80 p-3 sm:p-4 rounded-xl border border-slate-200/80 space-y-3">
+              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-8">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
                   <Building2 className="w-4 h-4 text-indigo-600" />
-                  <span>1. Data Vendor & Jadwal Kirim</span>
+                  <span>Vendor & Jadwal Kirim</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -756,11 +756,11 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* SECTION 2: Daftar Barang yang Dipesan */}
-              <div className="space-y-3">
+              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-12">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
                     <Package className="w-4 h-4 text-indigo-600" />
-                    <span>2. Daftar Barang ({formItems.length})</span>
+                    <span>Daftar Barang <span className="ml-1 rounded-full bg-[#eaf8e7] px-2 py-0.5 text-[#397c31]">{formItems.length} item</span></span>
                   </div>
                   {sourceMode === 'direct' && <button
                     type="button"
@@ -937,7 +937,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* SECTION 3: Ringkasan Nilai PO & PPN */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2.5">
+              <div className="space-y-2.5 rounded-2xl border border-[#dfddd7] bg-white p-4 lg:col-span-5">
                 <div className="flex justify-between items-center text-xs text-slate-600">
                   <span>Subtotal Barang ({formItems.reduce((s, i) => s + (i.quantity || 0), 0)} unit):</span>
                   <span className="font-semibold text-slate-900">{formatRupiah(calculatedSubtotal)}</span>
@@ -978,7 +978,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* Collapsible: Pengaturan Tambahan (Opsional) */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="overflow-hidden rounded-2xl border border-[#dfddd7] bg-white lg:col-span-7">
                 <button
                   type="button"
                   onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
@@ -1044,7 +1044,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="sticky -bottom-6 z-10 -mx-4 flex items-center justify-end gap-2.5 border-t border-[#e3e1da] bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(35,35,30,.08)] backdrop-blur-lg sm:-mx-6 sm:px-6">
+              <div className="sticky bottom-0 z-20 -mx-3 flex items-center justify-end gap-2.5 border-t border-[#e3e1da] bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(35,35,30,.08)] backdrop-blur-lg sm:-mx-5 sm:px-6 lg:col-span-12">
                 <button
                   type="button"
                   onClick={() => {
@@ -1057,7 +1057,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 text-xs sm:text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl shadow-xs transition flex items-center gap-1.5"
+                  className="flex min-h-11 items-center gap-1.5 rounded-xl bg-[#079b68] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#07865b] active:bg-[#066f4d] sm:text-sm"
                 >
                   <ShoppingCart className="w-4 h-4" />
                   <span>Terbitkan Purchase Order</span>
