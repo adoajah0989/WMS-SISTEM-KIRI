@@ -86,7 +86,10 @@ const MainContent: React.FC = () => {
       } : undefined} />
 
       {/* Main Content with bottom padding to account for mobile BottomNav */}
-      <main className="flex-1 w-full max-w-[1560px] mx-auto px-3 sm:px-5 lg:px-7 py-3 sm:py-5 pb-28 md:pb-8">
+      <main className={`flex-1 w-full mx-auto ${activeTab === 'requisitions' && isPRCreateOpen
+        ? 'max-w-none p-0'
+        : 'max-w-[1560px] px-3 py-3 pb-28 sm:px-5 sm:py-5 lg:px-7 md:pb-8'
+      }`}>
         {activeTab === 'dashboard' && (
           <DashboardView
             onOpenCreatePR={() => {
@@ -155,10 +158,10 @@ const MainContent: React.FC = () => {
       </main>
 
       {/* Mobile Ergonomic Bottom Navigation Bar with Floating Scan QR button */}
-      <BottomNav onOpenScanQR={canScan ? () => {
+      {!isPRCreateOpen && <BottomNav onOpenScanQR={canScan ? () => {
         setSelectedItemForQRScan(null);
         setIsQRScanOpen(true);
-      } : undefined} />
+      } : undefined} />}
 
       {/* Rack QR Tracking Scanner Modal */}
       <RackQRScanModal

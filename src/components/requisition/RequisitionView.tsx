@@ -292,7 +292,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
       <div className="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none text-xs -mx-1 px-1">
+          <div className="grid grid-cols-2 gap-1.5 text-xs sm:grid-cols-3 md:flex md:items-center md:gap-1">
             {[
               { id: 'all', label: 'Semua' },
               { id: 'menunggu_persetujuan', label: 'Menunggu' },
@@ -303,7 +303,7 @@ export const RequisitionView: React.FC<RequisitionViewProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setStatusFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition min-h-[36px] ${
+                className={`min-h-[38px] rounded-lg px-2 py-1.5 text-center font-medium transition md:px-3 ${
                   statusFilter === tab.id
                     ? 'bg-slate-900 text-white font-semibold'
                     : 'text-slate-600 hover:bg-slate-100'

@@ -26,12 +26,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
 
   return (
     <header className="no-print sticky top-0 z-30 border-b border-[#e7e5e0] bg-[#f3f2ef]/95 backdrop-blur-lg">
-      <div className="mx-auto flex h-16 max-w-[1560px] items-center gap-3 px-3 sm:px-5 lg:px-7">
+      <div className="mx-auto flex h-14 max-w-[1560px] items-center gap-2 px-3 sm:h-16 sm:gap-3 sm:px-5 lg:px-7">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#252525] text-[#83df73] md:hidden">
             <Package className="h-[18px] w-[18px]" />
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 max-w-[9rem] sm:max-w-none">
             <h1 className="truncate text-base font-semibold tracking-tight text-[#242424] sm:text-lg">{title}</h1>
             <p className="hidden truncate text-[11px] text-[#7c7b76] sm:block">{subtitle}</p>
           </div>
@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
           {searchGlobal && <button onClick={() => setSearchGlobal('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#96958f]"><X className="h-3.5 w-3.5" /></button>}
         </div>
 
-        <label className="relative flex h-10 min-w-0 max-w-[190px] items-center rounded-xl border border-[#d8d6cf] bg-white pl-8 pr-2 sm:min-w-[170px]">
+        <label className="relative hidden h-10 min-w-0 max-w-[190px] items-center rounded-xl border border-[#d8d6cf] bg-white pl-8 pr-2 sm:min-w-[170px] md:flex">
           <Warehouse className="pointer-events-none absolute left-2.5 h-4 w-4 text-[#397c31]" />
           <select value={activeWarehouseId} onChange={(event) => setActiveWarehouseId(event.target.value)} className="h-full min-w-0 flex-1 appearance-none truncate bg-transparent pr-4 text-[10px] font-bold text-[#333] outline-none sm:text-xs" aria-label="Warehouse aktif">
             {accessibleWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}
@@ -66,6 +66,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenScanQR }) => {
             <button onClick={() => void signOut()} className="flex min-h-10 w-full items-center gap-2 rounded-xl px-3 text-xs font-medium text-[#c44e48] hover:bg-[#fff0ee]"><LogOut className="h-4 w-4" /> Keluar</button>
           </div>}
         </div>
+      </div>
+
+      <div className="border-t border-[#e7e5e0] px-3 py-2 md:hidden">
+        <label className="relative flex h-10 w-full items-center rounded-xl border border-[#d8d6cf] bg-white pl-9 pr-2">
+          <Warehouse className="pointer-events-none absolute left-3 h-4 w-4 text-[#397c31]" />
+          <select value={activeWarehouseId} onChange={(event) => setActiveWarehouseId(event.target.value)} className="h-full min-w-0 flex-1 appearance-none truncate bg-transparent pr-4 text-sm font-semibold text-[#333] outline-none" aria-label="Warehouse aktif">
+            {accessibleWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}
+          </select>
+        </label>
       </div>
 
       {mobileSearch && <div className="border-t border-[#e7e5e0] px-3 py-2 lg:hidden"><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#999]" /><input autoFocus value={searchGlobal} onChange={(event) => setSearchGlobal(event.target.value)} placeholder="Cari SKU, PR, PO, supplier..." className="h-11 w-full rounded-xl border border-[#deddd7] bg-white pl-9 pr-10 text-sm outline-none focus:border-[#82dd70]" /><button onClick={() => setMobileSearch(false)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#777]"><X className="h-4 w-4" /></button></div></div>}
