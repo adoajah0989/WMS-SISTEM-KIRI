@@ -661,8 +661,8 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSubmitPO} className="grid flex-1 grid-cols-1 content-start gap-3 overflow-y-auto bg-[#f7f8fa] p-3 pb-28 sm:p-5 sm:pb-28 lg:grid-cols-12">
-              <section className="rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-4">
+            <form onSubmit={handleSubmitPO} className="grid flex-1 grid-cols-1 content-start gap-3 overflow-y-auto bg-[#f7f8fa] p-3 pb-28 sm:p-5 sm:pb-28 lg:grid-cols-12 lg:grid-rows-[auto_auto_auto_1fr_auto]">
+              <section className="rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-4 lg:col-start-1 lg:row-start-1">
                 <div className="flex items-start justify-between gap-3">
                   <div><p className="text-xs font-bold text-[#333]">Sumber purchase order</p><p className="mt-0.5 text-[10px] text-[#85847e]">Gunakan PR agar barang dan qty terisi otomatis.</p></div>
                   <div className="flex rounded-xl border border-[#dfddd7] bg-white p-1">
@@ -682,7 +682,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </section>
 
               {/* SECTION 1: Supplier & Tanggal Kirim */}
-              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-8">
+              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-4 lg:col-start-1 lg:row-start-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
                   <Building2 className="w-4 h-4 text-indigo-600" />
                   <span>Vendor & Jadwal Kirim</span>
@@ -756,7 +756,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* SECTION 2: Daftar Barang yang Dipesan */}
-              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-12">
+              <div className="space-y-3 rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-8 lg:col-start-5 lg:row-span-4 lg:row-start-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
                     <Package className="w-4 h-4 text-indigo-600" />
@@ -937,7 +937,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* SECTION 3: Ringkasan Nilai PO & PPN */}
-              <div className="space-y-2.5 rounded-2xl border border-[#dfddd7] bg-white p-4 lg:col-span-5">
+              <div className="space-y-2.5 rounded-2xl border border-[#dfddd7] bg-white p-4 lg:col-span-4 lg:col-start-1 lg:row-start-3">
                 <div className="flex justify-between items-center text-xs text-slate-600">
                   <span>Subtotal Barang ({formItems.reduce((s, i) => s + (i.quantity || 0), 0)} unit):</span>
                   <span className="font-semibold text-slate-900">{formatRupiah(calculatedSubtotal)}</span>
@@ -978,7 +978,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </div>
 
               {/* Collapsible: Pengaturan Tambahan (Opsional) */}
-              <div className="overflow-hidden rounded-2xl border border-[#dfddd7] bg-white lg:col-span-7">
+              <div className="overflow-hidden rounded-2xl border border-[#dfddd7] bg-white lg:col-span-4 lg:col-start-1 lg:row-start-4">
                 <button
                   type="button"
                   onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
