@@ -466,12 +466,12 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#f8f7f4] animate-in fade-in duration-200 md:relative md:inset-auto md:z-auto md:h-[calc(100dvh-4rem)] md:min-h-0 md:w-full md:rounded-none md:border-0 md:shadow-none">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#f7f8fa] animate-in fade-in duration-200 md:relative md:inset-auto md:z-auto md:h-[calc(100dvh-4rem)] md:min-h-0 md:w-full md:rounded-none md:border-0 md:shadow-none">
       {/* Modal Container: Full Screen on Mobile, Rounded Card on Desktop */}
-      <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#f8f7f4]">
+      <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#f7f8fa]">
         
         {/* TOP APP BAR / HEADER (Matching user screenshot) */}
-        <div className="bg-white text-[#242424] px-3 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between border-b border-[#e7e5e0] shrink-0 select-none">
+        <div className="flex shrink-0 items-center justify-between border-b border-[#e4e7ec] bg-white px-4 py-3 text-[#242424] sm:px-6 select-none">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
@@ -481,7 +481,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               <ArrowLeft className="w-6 h-6" />
             </button>
 
-            <div className="w-9 h-9 rounded-xl bg-[#e5f6e1] border border-[#cae9c3] text-[#397c31] flex items-center justify-center shrink-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#bce8b4] bg-[#eaf8e7] text-[#397c31]">
               <FileText className="w-5 h-5" />
             </div>
 
@@ -489,8 +489,8 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               <h2 className="text-sm sm:text-base font-bold text-[#292929] leading-tight">
                 Buat Permintaan Barang
               </h2>
-              <p className="text-[11px] text-[#85847e] font-normal">
-                Purchase Request (PR)
+              <p className="mt-0.5 text-[10px] font-normal text-[#85847e]">
+                Pilih barang, lengkapi kebutuhan, lalu kirim untuk persetujuan.
               </p>
             </div>
           </div>
@@ -514,7 +514,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-30 text-slate-800 text-xs animate-in zoom-in-95 duration-100">
                   <button
                     onClick={handleLoadDemoData}
-                    className="w-full px-4 py-2.5 text-left flex items-center gap-2 hover:bg-emerald-50 text-emerald-700 font-medium"
+                    className="w-full px-4 py-2.5 text-left flex items-center gap-2 hover:bg-emerald-50 text-[#087654] font-medium"
                   >
                     <Sparkles className="w-4 h-4 text-emerald-600" />
                     <span>Muat Contoh Data</span>
@@ -550,105 +550,20 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           </div>
         </div>
 
-        {/* STEPPER PROGRESS BAR (Matching 1 - 2 - 3 design) */}
-        <div className="shrink-0 border-b border-[#eceae5] bg-white px-5 py-2.5 sm:px-6 sm:py-3.5">
-          <div className="flex items-center justify-between max-w-sm mx-auto">
-            {/* Step 1: Barang */}
-            <button
-              onClick={() => setCurrentStep(1)}
-              className="flex flex-col items-center group cursor-pointer"
-            >
-              <div
-                className={`h-7 w-7 rounded-full sm:h-8 sm:w-8 flex items-center justify-center text-xs font-bold transition-all ${
-                  currentStep === 1
-                    ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-xs'
-                    : currentStep > 1
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-white border-2 border-slate-300 text-slate-500'
-                }`}
-              >
-                {currentStep > 1 ? <Check className="w-4 h-4 stroke-[3]" /> : '1'}
-              </div>
-              <span
-                className={`mt-1 text-[10px] font-semibold transition-colors sm:mt-1.5 sm:text-[11px] ${
-                  currentStep === 1 || currentStep > 1
-                    ? 'text-emerald-700 font-bold'
-                    : 'text-slate-500'
-                }`}
-              >
-                Barang
-              </span>
-            </button>
-
-            {/* Connecting line 1-2 */}
-            <div
-              className={`flex-1 h-0.5 mx-2 -mt-4 transition-colors ${
-                currentStep > 1 ? 'bg-emerald-600' : 'bg-slate-200'
-              }`}
-            />
-
-            {/* Step 2: Detail */}
-            <button
-              onClick={() => {
-                if (validateStep2()) setCurrentStep(2);
-              }}
-              className="flex flex-col items-center group cursor-pointer"
-            >
-              <div
-                className={`h-7 w-7 rounded-full sm:h-8 sm:w-8 flex items-center justify-center text-xs font-bold transition-all ${
-                  currentStep === 2
-                    ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-xs'
-                    : currentStep > 2
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-white border-2 border-slate-300 text-slate-500'
-                }`}
-              >
-                {currentStep > 2 ? <Check className="w-4 h-4 stroke-[3]" /> : '2'}
-              </div>
-              <span
-                className={`mt-1 text-[10px] font-semibold transition-colors sm:mt-1.5 sm:text-[11px] ${
-                  currentStep === 2 || currentStep > 2
-                    ? 'text-emerald-700 font-bold'
-                    : 'text-slate-500'
-                }`}
-              >
-                Detail
-              </span>
-            </button>
-
-            {/* Connecting line 2-3 */}
-            <div
-              className={`flex-1 h-0.5 mx-2 -mt-4 transition-colors ${
-                currentStep > 2 ? 'bg-emerald-600' : 'bg-slate-200'
-              }`}
-            />
-
-            {/* Step 3: Tinjau */}
-            <button
-              onClick={() => {
-                if (validateStep1() && validateStep2()) setCurrentStep(3);
-              }}
-              className="flex flex-col items-center group cursor-pointer"
-            >
-              <div
-                className={`h-7 w-7 rounded-full sm:h-8 sm:w-8 flex items-center justify-center text-xs font-bold transition-all ${
-                  currentStep === 3
-                    ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-xs'
-                    : 'bg-white border-2 border-slate-300 text-slate-500'
-                }`}
-              >
-                3
-              </div>
-              <span
-                className={`mt-1 text-[10px] font-semibold transition-colors sm:mt-1.5 sm:text-[11px] ${
-                  currentStep === 3
-                    ? 'text-emerald-700 font-bold'
-                    : 'text-slate-500'
-                }`}
-              >
-                Tinjau
-              </span>
-            </button>
+        {/* Compact workflow navigation — aligned with the PO workspace */}
+        <div className="shrink-0 border-b border-[#e4e7ec] bg-white px-4 py-2 sm:px-6">
+          <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-[#9a9892]">Alur permintaan</span>
+              <strong className="block truncate text-xs text-[#333]">
+                {currentStep === 1 ? 'Pilih dan atur barang' : currentStep === 2 ? 'Lengkapi detail pengajuan' : 'Periksa lalu kirim'}
+              </strong>
+            </div>
+            <nav className="flex shrink-0 rounded-xl border border-[#dfddd7] bg-[#f7f8fa] p-1" aria-label="Tahap permintaan barang">
+              <button type="button" onClick={() => setCurrentStep(1)} className={`min-h-8 rounded-lg px-2.5 text-[10px] font-semibold transition sm:px-4 sm:text-[11px] ${currentStep === 1 ? 'bg-[#079b68] text-white shadow-sm' : 'text-[#77766f] hover:bg-white'}`}>Barang</button>
+              <button type="button" onClick={() => { if (validateStep2()) setCurrentStep(2); }} className={`min-h-8 rounded-lg px-2.5 text-[10px] font-semibold transition sm:px-4 sm:text-[11px] ${currentStep === 2 ? 'bg-[#079b68] text-white shadow-sm' : 'text-[#77766f] hover:bg-white'}`}>Detail</button>
+              <button type="button" onClick={() => { if (validateStep1() && validateStep2()) setCurrentStep(3); }} className={`min-h-8 rounded-lg px-2.5 text-[10px] font-semibold transition sm:px-4 sm:text-[11px] ${currentStep === 3 ? 'bg-[#079b68] text-white shadow-sm' : 'text-[#77766f] hover:bg-white'}`}>Tinjau</button>
+            </nav>
           </div>
         </div>
 
@@ -667,13 +582,13 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         )}
 
         {/* SCROLLABLE FORM BODY */}
-        <div className="mx-auto w-full max-w-[1600px] flex-1 space-y-3 overflow-y-auto bg-[#f8f7f4] px-3 py-3 pb-36 sm:px-5 md:pb-28 lg:px-6">
+        <div className="mx-auto w-full max-w-[1600px] flex-1 space-y-3 overflow-y-auto bg-[#f7f8fa] p-3 pb-36 sm:p-5 sm:pb-28">
           
           {/* ======================================================== */}
           {/* STEP 1: DETAIL (INFORMASI PERMINTAAN)                    */}
           {/* ======================================================== */}
           {currentStep === 2 && (
-            <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="mx-auto max-w-4xl space-y-4 rounded-2xl border border-[#dfddd7] bg-white p-4 shadow-2xs animate-in fade-in duration-150">
               {/* Section Header with Green Info Icon */}
               <div className="flex items-center gap-2.5 pb-1">
                 <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
@@ -786,7 +701,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                     onClick={() => setPriority('sedang')}
                     className={`py-2.5 text-xs font-bold rounded-xl transition ${
                       priority === 'sedang'
-                        ? 'bg-emerald-50 text-emerald-800 border-2 border-emerald-600 shadow-xs'
+                        ? 'bg-emerald-50 text-[#087654] border-2 border-[#079b68] shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -869,8 +784,8 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
 
               </div>
 
-              <div className="grid items-start gap-2.5 xl:grid-cols-[minmax(320px,0.42fr)_minmax(0,1fr)]">
-                <div className="min-w-0 xl:sticky xl:top-0">
+              <div className="grid items-start gap-3 lg:grid-cols-12">
+                <div className="min-w-0 lg:sticky lg:top-0 lg:col-span-4">
                   {/* Smart stock picker: choose first, edit quantity afterwards */}
               <section className="motion-fade-up overflow-hidden rounded-xl border border-[#dfddd7] bg-[#faf9f6] sm:rounded-2xl">
                 <button
@@ -933,7 +848,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 </section>
                 </div>
 
-                <div className="min-w-0 space-y-2">
+                <div className="min-w-0 space-y-2 lg:col-span-8">
                   {/* Compact item list: dense by default, full controls stay touch-friendly */}
               <div className="space-y-2">
                 {items.map((item, index) => {
@@ -1070,7 +985,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
           {/* STEP 3: TINJAU (RINGKASAN & KONFIRMASI)                  */}
           {/* ======================================================== */}
           {currentStep === 3 && (
-            <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="mx-auto max-w-4xl space-y-4 rounded-2xl border border-[#dfddd7] bg-white p-4 shadow-2xs animate-in fade-in duration-150">
               {/* Section Header */}
               <div className="flex items-center gap-2.5 pb-1">
                 <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
@@ -1095,7 +1010,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                   <button
                     type="button"
                     onClick={() => setCurrentStep(2)}
-                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline"
+                    className="text-xs font-semibold text-[#087654] hover:text-[#087654] underline"
                   >
                     Edit Detail
                   </button>
@@ -1121,7 +1036,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                         priority === 'tinggi' || priority === 'urgent'
                           ? 'bg-rose-100 text-rose-700'
                           : priority === 'sedang'
-                          ? 'bg-emerald-100 text-emerald-800'
+                          ? 'bg-emerald-100 text-[#087654]'
                           : 'bg-slate-200 text-slate-700'
                       }`}
                     >
@@ -1151,7 +1066,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                   <button
                     type="button"
                     onClick={() => setCurrentStep(1)}
-                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline"
+                    className="text-xs font-semibold text-[#087654] hover:text-[#087654] underline"
                   >
                     Edit Barang
                   </button>
@@ -1203,7 +1118,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         {/* ======================================================== */}
         {/* STICKY BOTTOM ACTION BAR (Matching user screenshot)      */}
         {/* ======================================================== */}
-        <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 right-3 z-10 flex items-center justify-end gap-2.5 rounded-2xl border border-[#dedcd5] bg-white/95 p-2.5 shadow-[0_12px_34px_rgba(35,35,30,.22)] backdrop-blur-lg md:bottom-0 md:left-0 md:right-0 md:rounded-none md:border-x-0 md:border-b-0 md:px-8 md:py-3 md:shadow-[0_-10px_26px_rgba(35,35,30,.08)]">
+        <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 right-3 z-10 flex items-center justify-end gap-2.5 rounded-2xl border border-[#dedcd5] bg-white/95 p-2.5 shadow-[0_12px_34px_rgba(35,35,30,.22)] backdrop-blur-lg md:bottom-0 md:left-0 md:right-0 md:rounded-none md:border-x-0 md:border-b-0 md:px-8 md:py-3 md:shadow-[0_-8px_24px_rgba(35,35,30,.07)]">
           
           {/* STEP 1 ACTIONS */}
           {currentStep === 1 && (
@@ -1211,16 +1126,16 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               <button
                 type="button"
                 onClick={() => handleSavePR('draft')}
-                className="flex-1 py-3 px-3 border-2 border-emerald-600 md:flex-none md:min-w-44 active:bg-emerald-50 text-emerald-800 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition"
+                className="flex-1 py-3 px-3 border-2 border-[#079b68] md:flex-none md:min-w-44 active:bg-emerald-50 text-[#087654] rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition"
               >
-                <Save className="w-4 h-4 text-emerald-700" />
+                <Save className="w-4 h-4 text-[#087654]" />
                 <span>Simpan Draft</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleNextToStep2}
-                className="flex-[1.4] py-3 px-4 bg-emerald-600 md:flex-none md:min-w-52 md:flex-none md:min-w-52 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99]"
+                className="flex-[1.4] py-3 px-4 bg-emerald-600 md:flex-none md:min-w-52 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99]"
               >
                 <span>Lanjut ke Detail</span>
                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -1234,7 +1149,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className="flex-1 py-3 px-3 border border-slate-300 md:flex-none md:min-w-40 md:flex-none md:min-w-40 active:bg-slate-100 text-slate-700 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition"
+                className="flex-1 py-3 px-3 border border-slate-300 md:flex-none md:min-w-40 active:bg-slate-100 text-slate-700 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Kembali</span>
@@ -1243,7 +1158,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
               <button
                 type="button"
                 onClick={handleNextToStep3}
-                className="flex-[1.4] py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99]"
+                className="flex-[1.4] py-3 px-4 bg-[#079b68] hover:bg-[#07885d] active:bg-[#066f4d] text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99]"
               >
                 <span>Lanjut ke Tinjau</span>
                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -1269,7 +1184,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
                 onClick={() => handleSavePR('menunggu_persetujuan')}
                 className={`flex-[1.5] py-3 px-4 text-white md:flex-none md:min-w-56 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99] ${
                   confirmedAgreement
-                    ? 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800'
+                    ? 'bg-[#079b68] hover:bg-[#07885d] active:bg-[#066f4d]'
                     : 'bg-slate-400 cursor-not-allowed opacity-70'
                 }`}
               >
