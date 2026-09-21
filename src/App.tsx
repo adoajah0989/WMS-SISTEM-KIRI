@@ -158,7 +158,7 @@ const MainContent: React.FC = () => {
       </main>
 
       {/* Mobile Ergonomic Bottom Navigation Bar with Floating Scan QR button */}
-      {!isPRCreateOpen && <BottomNav onOpenScanQR={canScan ? () => {
+      {!isPRCreateOpen && !isPOCreateOpen && <BottomNav onOpenScanQR={canScan ? () => {
         setSelectedItemForQRScan(null);
         setIsQRScanOpen(true);
       } : undefined} />}
