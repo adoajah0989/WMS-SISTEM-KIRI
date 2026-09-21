@@ -466,12 +466,12 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#f8f7f4] animate-in fade-in duration-200 md:relative md:inset-auto md:z-auto md:h-[calc(100dvh-8.5rem)] md:min-h-[680px] md:w-full md:rounded-2xl md:border md:border-[#dedcd5] md:shadow-sm">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#f8f7f4] animate-in fade-in duration-200 md:relative md:inset-auto md:z-auto md:h-[calc(100dvh-4rem)] md:min-h-0 md:w-full md:rounded-none md:border-0 md:shadow-none">
       {/* Modal Container: Full Screen on Mobile, Rounded Card on Desktop */}
       <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#f8f7f4]">
         
         {/* TOP APP BAR / HEADER (Matching user screenshot) */}
-        <div className="bg-white text-[#242424] px-4 py-3.5 flex items-center justify-between border-b border-[#e7e5e0] shrink-0 select-none">
+        <div className="bg-white text-[#242424] px-3 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between border-b border-[#e7e5e0] shrink-0 select-none">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
@@ -667,7 +667,7 @@ export const CreateRequisitionStepperModal: React.FC<CreateRequisitionStepperMod
         )}
 
         {/* SCROLLABLE FORM BODY */}
-        <div className="mx-auto w-full max-w-[1600px] flex-1 space-y-3 overflow-y-auto bg-[#f8f7f4] px-4 py-3 pb-32 sm:px-6 md:pb-24 lg:px-8">
+        <div className="mx-auto w-full max-w-[1600px] flex-1 space-y-3 overflow-y-auto bg-[#f8f7f4] px-3 py-3 pb-36 sm:px-5 md:pb-28 lg:px-6">
           
           {/* ======================================================== */}
           {/* STEP 1: DETAIL (INFORMASI PERMINTAAN)                    */}
