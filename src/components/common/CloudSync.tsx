@@ -1,11 +1,34 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePurchasing } from '../../context/PurchasingContext';
 import { readLocalSnapshot, saveCloudSnapshot } from '../../services/cloudPersistence';
+import { supabase } from '../../lib/supabase';
 
 export const CloudSync: React.FC = () => {
-  const { items, suppliers, requisitions, purchaseOrders, goodsReceipts, stockMovements, stockOpnames, storeTransfers, warehouses, inventoryCategories } = usePurchasing();
+  const { items, suppliers, requisitions, purchaseOrders, goodsReceipts, stockMovements, stockOpnames, storeTransfers, warehouses, inventoryCategories, applyCloudSnapshot } = usePurchasing();
   const firstRender = useRef(true);
   const [syncError, setSyncError] = useState('');
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel('wms-app-state-sync')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_state', filter: 'id=eq.1' }, (payload) => {
+        const nextVersion = Number((payload.new as { version?: number }).version || 0);
+        const currentVersion = Number(localStorage.getItem('kiri_app_state_version') || '0');
+        if (nextVersion <= currentVersion) return;
+
+        applyCloudSnapshot((payload.new as { payload?: Record<string, unknown[]> }).payload || {}, nextVersion);
+        setSyncError('');
+      })
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') setSyncError('Update realtime belum tersedia. Periksa publication Supabase.');
+      });
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [applyCloudSnapshot]);
 
   useEffect(() => {
     if (firstRender.current) {
