@@ -50,6 +50,18 @@ export const restoreCloudSnapshot = async () => {
   }
 };
 
+export const fetchCloudSnapshot = async () => {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('app_state')
+    .select('payload, version')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as { payload?: Record<string, unknown[]>; version?: number } | null;
+};
+
 export const saveCloudSnapshot = async (snapshot: CloudSnapshot) => {
   if (!supabase) return;
 

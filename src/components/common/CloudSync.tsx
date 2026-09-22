@@ -1,12 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePurchasing } from '../../context/PurchasingContext';
-import { readLocalSnapshot, saveCloudSnapshot } from '../../services/cloudPersistence';
+import { fetchCloudSnapshot, readLocalSnapshot, saveCloudSnapshot } from '../../services/cloudPersistence';
 import { supabase } from '../../lib/supabase';
 
 export const CloudSync: React.FC = () => {
   const { items, suppliers, requisitions, purchaseOrders, goodsReceipts, stockMovements, stockOpnames, storeTransfers, warehouses, inventoryCategories, applyCloudSnapshot } = usePurchasing();
   const firstRender = useRef(true);
+  const skipNextSave = useRef(false);
   const [syncError, setSyncError] = useState('');
+
+  const applyIncomingSnapshot = (payload: Record<string, unknown[]>, version: number) => {
+    skipNextSave.current = true;
+    applyCloudSnapshot(payload, version);
+  };
 
   useEffect(() => {
     if (!supabase) return;
@@ -18,7 +24,7 @@ export const CloudSync: React.FC = () => {
         const currentVersion = Number(localStorage.getItem('kiri_app_state_version') || '0');
         if (nextVersion <= currentVersion) return;
 
-        applyCloudSnapshot((payload.new as { payload?: Record<string, unknown[]> }).payload || {}, nextVersion);
+        applyIncomingSnapshot((payload.new as { payload?: Record<string, unknown[]> }).payload || {}, nextVersion);
         setSyncError('');
       })
       .subscribe((status) => {
@@ -31,8 +37,34 @@ export const CloudSync: React.FC = () => {
   }, [applyCloudSnapshot]);
 
   useEffect(() => {
+    if (!supabase) return;
+
+    const checkForCloudChanges = async () => {
+      try {
+        const snapshot = await fetchCloudSnapshot();
+        const nextVersion = Number(snapshot?.version || 0);
+        const currentVersion = Number(localStorage.getItem('kiri_app_state_version') || '0');
+        if (snapshot?.payload && nextVersion > currentVersion) {
+          applyIncomingSnapshot(snapshot.payload, nextVersion);
+          setSyncError('');
+        }
+      } catch (error) {
+        console.error('Cloud polling failed', error);
+      }
+    };
+
+    const timer = window.setInterval(() => void checkForCloudChanges(), 5000);
+    return () => window.clearInterval(timer);
+  }, [applyCloudSnapshot]);
+
+  useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
+      return;
+    }
+
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
       return;
     }
 
@@ -42,7 +74,20 @@ export const CloudSync: React.FC = () => {
         setSyncError('');
       } catch (error) {
         console.error('Supabase sync failed', error);
-        setSyncError(error instanceof Error && error.message === 'SYNC_VERSION_CONFLICT' ? 'Data berubah di perangkat lain. Muat ulang sebelum melanjutkan.' : 'Data belum tersinkron ke server. Data lokal tetap aman.');
+        if (error instanceof Error && error.message === 'SYNC_VERSION_CONFLICT') {
+          try {
+            const latest = await fetchCloudSnapshot();
+            if (latest?.payload) {
+              applyIncomingSnapshot(latest.payload, Number(latest.version || 0));
+              setSyncError('Data terbaru sudah diterapkan otomatis.');
+              window.setTimeout(() => setSyncError(''), 2500);
+              return;
+            }
+          } catch (refreshError) {
+            console.error('Failed to resolve cloud conflict', refreshError);
+          }
+        }
+        setSyncError('Data belum tersinkron ke server. Data lokal tetap aman.');
       }
     }, 700);
 
