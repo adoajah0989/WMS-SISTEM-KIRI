@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import {
   WarehouseItem,
   Supplier,
@@ -25,6 +25,7 @@ import {
 } from '../data/initialData';
 import { recordActivity } from '../services/activityLog';
 import { useAuth } from '../components/auth/AuthContext';
+import { STORAGE_KEYS as CLOUD_STORAGE_KEYS, type CloudSnapshot, writeLocalSnapshot } from '../services/cloudPersistence';
 import {
   calculateWeightedAverageCost,
   getAverageUnitCost,
@@ -110,6 +111,7 @@ interface PurchasingContextType {
   importSuppliers: (importedSuppliers: Partial<Supplier>[], mode: 'merge' | 'replace') => number;
   importFullBackup: (backupData: any) => boolean;
   exportDatabaseJSON: () => void;
+  applyCloudSnapshot: (snapshot: Partial<CloudSnapshot>, version: number) => void;
 }
 
 const STORAGE_KEYS = {
@@ -220,6 +222,19 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     const saved = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
     return saved ? JSON.parse(saved) : [];
   });
+  const applyCloudSnapshot = useCallback((snapshot: Partial<CloudSnapshot>, version: number) => {
+    writeLocalSnapshot(snapshot);
+    localStorage.setItem('kiri_app_state_version', String(version));
+
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.ITEMS])) setItems(snapshot[CLOUD_STORAGE_KEYS.ITEMS] as WarehouseItem[]);
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.SUPPLIERS])) setSuppliers(snapshot[CLOUD_STORAGE_KEYS.SUPPLIERS] as Supplier[]);
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.PRS])) setRequisitions(snapshot[CLOUD_STORAGE_KEYS.PRS] as PurchaseRequisition[]);
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.POS])) setPurchaseOrders(snapshot[CLOUD_STORAGE_KEYS.POS] as PurchaseOrder[]);
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.GRNS])) setGoodsReceipts(snapshot[CLOUD_STORAGE_KEYS.GRNS] as GoodsReceipt[]);
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.MOVEMENTS])) setStockMovements(snapshot[CLOUD_STORAGE_KEYS.MOVEMENTS] as StockMovement[]);
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.OPNAMES])) setStockOpnames(snapshot[CLOUD_STORAGE_KEYS.OPNAMES] as StockOpname[]);
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.TRANSFERS])) setStoreTransfers(snapshot[CLOUD_STORAGE_KEYS.TRANSFERS] as StoreTransfer[]);
+  }, []);
   const accessibleWarehouses = warehouses.filter((warehouse) => warehouse.type === 'warehouse' && warehouse.isActive && allowedWarehouseIds.includes(warehouse.id));
   const activeWarehouse = accessibleWarehouses.find((warehouse) => warehouse.id === activeWarehouseId) || accessibleWarehouses[0] || warehouses.find((warehouse) => warehouse.id === 'wh-aceh') || DEFAULT_WAREHOUSES[1];
   const setActiveWarehouseId = (warehouseId: string) => {
@@ -1102,6 +1117,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         importSuppliers,
         importFullBackup,
         exportDatabaseJSON,
+        applyCloudSnapshot,
       }}
     >
       {children}
