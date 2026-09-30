@@ -1,19 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
-  --kiri-canvas: #121212;
-  --kiri-surface: #1e1e1e;
-  --kiri-surface-subtle: #181818;
-  --kiri-surface-raised: #252525;
-  --kiri-text: #ffffff;
-  --kiri-muted: #98989d;
-  --kiri-border: #2c2c2e;
-  --kiri-brand: #00e5ff;
-  --kiri-brand-strong: #00b8cc;
-  --kiri-positive: #32d74b;
-  --kiri-warning: #ffb340;
-  --kiri-danger: #ff453a;
+  color-scheme: light;
+  --kiri-canvas: #f3f2ef;
+  --kiri-surface: #ffffff;
+  --kiri-text: #242424;
+  --kiri-muted: #777773;
+  --kiri-border: #e7e5e0;
+  --kiri-brand: #82dd70;
 }
 
 @layer base {
@@ -22,7 +16,7 @@
   html { background: var(--kiri-canvas); }
 
   body {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     margin: 0;
     min-width: 320px;
     background: var(--kiri-canvas);
@@ -49,14 +43,14 @@
   }
 
   .kiri-focus:focus-visible {
-    border-color: var(--kiri-brand);
-    box-shadow: 0 0 0 4px rgba(0, 229, 255, 0.16);
+    border-color: #76ca67;
+    box-shadow: 0 0 0 4px rgba(130, 221, 112, 0.2);
   }
 }
 
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 2px solid var(--kiri-brand);
+  outline: 2px solid #4f9e44;
   outline-offset: 2px;
 }
 
@@ -75,174 +69,107 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 
-/* WattVision-inspired WMS theme compatibility layer.
-   Keeps legacy utility markup visually consistent while pages migrate to tokens. */
+/* Shared light operational UI — used by every main menu. */
 @layer components {
-  .wv-page {
-    min-height: 100%;
+  .app-page {
+    color: var(--kiri-text);
+    animation: kiri-fade-up 220ms cubic-bezier(.2,.8,.2,1) both;
+  }
+
+  .app-page > header {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+  }
+
+  .app-page > header h1,
+  .app-page > :first-child h1 {
+    color: var(--kiri-text);
+    letter-spacing: -.025em;
+  }
+
+  .app-page :is(input, select, textarea) {
+    border-color: #deddd7;
+    background-color: #fff;
+    color: #2d2d2b;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .app-page :is(input, textarea)::placeholder {
+    color: #9a9892;
+    opacity: 1;
+  }
+
+  .app-page :is(input, select, textarea):focus {
+    border-color: #76ca67;
+    box-shadow: 0 0 0 4px rgba(130,221,112,.16);
+    outline: none;
+  }
+
+  .app-page table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .app-page thead {
+    background: #faf9f6;
+  }
+
+  .app-page tbody tr {
+    transition: background-color 140ms ease;
+  }
+
+  .app-page tbody tr:hover {
+    background: #fbfaf7;
+  }
+
+  .app-page button,
+  .app-page a {
+    touch-action: manipulation;
+  }
+
+  .app-page button:disabled {
+    cursor: not-allowed;
+  }
+
+  .app-page [class*="overflow-x-auto"] {
+    scrollbar-color: #c8c6bf transparent;
+    scrollbar-width: thin;
+  }
+
+  .app-page [class*="bg-slate-900"],
+  .app-page [class*="bg-[#252525]"] {
+    box-shadow: 0 3px 8px rgba(25,25,20,.12);
+  }
+
+  .app-page [class*="rounded-xl"][class*="border"],
+  .app-page [class*="rounded-2xl"][class*="border"] {
+    border-color: #e2e0da;
+  }
+
+  .admin-app-page {
     background: var(--kiri-canvas);
     color: var(--kiri-text);
   }
-
-  .wv-card {
-    border: 1px solid var(--kiri-border);
-    border-radius: 1rem;
-    background: var(--kiri-surface);
-    padding: 1rem;
-  }
-
-  .wv-kpi {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.03em;
-  }
-
-  .wv-primary {
-    border-color: var(--kiri-brand);
-    background: var(--kiri-brand);
-    color: #071114;
-  }
-
-  .wv-alert {
-    border: 1px solid #5d2623;
-    border-left: 4px solid var(--kiri-danger);
-    background: #3a1c1c;
-    color: #ff8a82;
-  }
 }
 
-/* Neutral surfaces used throughout PR, PO, GR, stock, opname, transfer,
-   supplier, admin, drawers, and dialogs. */
-.bg-white,
-.bg-white\/95,
-.bg-white\/90,
-.bg-white\/80 { background-color: var(--kiri-surface) !important; }
-.bg-slate-50,
-.bg-slate-50\/40,
-.bg-slate-50\/50,
-.bg-slate-50\/60,
-.bg-slate-50\/70,
-.bg-slate-50\/80 { background-color: var(--kiri-surface-subtle) !important; }
-.bg-slate-100,
-.bg-slate-100\/50,
-.bg-slate-100\/70,
-.bg-slate-100\/80 { background-color: var(--kiri-surface-raised) !important; }
-.bg-slate-200,
-.bg-gray-100,
-.bg-gray-200 { background-color: var(--kiri-border) !important; }
+@media (max-width: 767px) {
+  .app-page {
+    padding-bottom: .5rem;
+  }
 
-.bg-\[\#f3f2ef\],
-.bg-\[\#f7f8fa\],
-.bg-\[\#f8f7f4\] { background-color: var(--kiri-canvas) !important; }
-.bg-\[\#fbfbf9\],
-.bg-\[\#faf9f6\],
-.bg-\[\#f9f8f5\] { background-color: var(--kiri-surface) !important; }
-.bg-\[\#f5f4f0\],
-.bg-\[\#f4f3ef\],
-.bg-\[\#f1f0ec\],
-.bg-\[\#f0efeb\],
-.bg-\[\#ecebe6\] { background-color: var(--kiri-surface-raised) !important; }
+  .app-page > header h1,
+  .app-page > :first-child h1 {
+    font-size: 1.25rem;
+    line-height: 1.45;
+  }
 
-/* High-contrast typography. */
-.text-slate-950,
-.text-slate-900,
-.text-slate-800,
-.text-gray-900,
-.text-gray-800,
-.text-\[\#222\],
-.text-\[\#242424\],
-.text-\[\#292929\],
-.text-\[\#333\],
-.text-\[\#444\] { color: var(--kiri-text) !important; }
-.text-slate-700,
-.text-slate-600,
-.text-slate-500,
-.text-gray-700,
-.text-gray-600,
-.text-gray-500,
-.text-\[\#555\],
-.text-\[\#65645f\],
-.text-\[\#666\],
-.text-\[\#676762\],
-.text-\[\#777\],
-.text-\[\#77766f\],
-.text-\[\#85847e\],
-.text-\[\#868681\],
-.text-\[\#888781\],
-.text-\[\#8a8983\],
-.text-\[\#8b8a84\],
-.text-\[\#96958f\],
-.text-\[\#999\],
-.text-\[\#999892\],
-.text-\[\#9a9892\],
-.text-\[\#9b9a94\],
-.text-\[\#a09f99\],
-.text-\[\#aaa8a1\] { color: var(--kiri-muted) !important; }
+  .app-page :is(button, a)[class*="min-h"] {
+    min-height: 44px;
+  }
 
-/* One border language across every operational module. */
-.border-slate-100,
-.border-slate-200,
-.border-slate-300,
-.border-gray-200,
-.border-gray-300,
-.border-\[\#d8d6cf\],
-.border-\[\#dedcd5\],
-.border-\[\#dedcd6\],
-.border-\[\#deddd7\],
-.border-\[\#dfddd7\],
-.border-\[\#e2e0da\],
-.border-\[\#e3e1da\],
-.border-\[\#e4e2dc\],
-.border-\[\#e4e7ec\],
-.border-\[\#e7e5e0\],
-.border-\[\#eceae5\] { border-color: var(--kiri-border) !important; }
-
-/* Cyan is reserved for global actions and active navigation. */
-.bg-\[\#079b68\],
-.bg-\[\#82dd70\],
-.bg-emerald-600 { background-color: var(--kiri-brand) !important; color: #071114 !important; }
-.hover\:bg-\[\#07885d\]:hover,
-.hover\:bg-emerald-700:hover { background-color: var(--kiri-brand-strong) !important; color: #071114 !important; }
-.border-\[\#079b68\],
-.border-emerald-600 { border-color: var(--kiri-brand) !important; }
-.text-\[\#087654\],
-.text-\[\#397c31\] { color: var(--kiri-brand) !important; }
-.bg-\[\#eaf8e7\],
-.bg-\[\#e5f6e1\],
-.bg-\[\#e4f7df\] { background-color: #102b2e !important; }
-.border-\[\#bce8b4\],
-.border-\[\#cae9c3\] { border-color: #16545c !important; }
-
-/* Form controls and menus stay readable in dark mode. */
-input:not([type="checkbox"]):not([type="radio"]),
-select,
-textarea {
-  border-color: var(--kiri-border);
-  background-color: var(--kiri-surface);
-  color: var(--kiri-text);
-}
-input::placeholder,
-textarea::placeholder { color: #6f6f74 !important; opacity: 1; }
-select option { background: var(--kiri-surface); color: var(--kiri-text); }
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--kiri-brand) !important;
-  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.13);
-}
-table { color: var(--kiri-text); }
-tbody tr { border-color: var(--kiri-border); }
-tbody tr:hover { background-color: #252525 !important; }
-hr { border-color: var(--kiri-border); }
-::selection { background: rgba(0, 229, 255, 0.28); color: #fff; }
-
-* {
-  scrollbar-color: #46464a #171717;
-  scrollbar-width: thin;
-}
-.skeleton-shimmer {
-  background: linear-gradient(90deg, #252525 25%, #343438 45%, #252525 65%) !important;
-  background-size: 240% 100% !important;
+  .app-page table {
+    font-size: .75rem;
+  }
 }
 
 #kiri-print-root { display: none; }

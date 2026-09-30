@@ -333,7 +333,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
   const totalLowAndOut = criticalCount + outOfStockCount;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="app-page space-y-4 sm:space-y-6">
       {/* Header & Quick Action Bar */}
       <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/90 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>

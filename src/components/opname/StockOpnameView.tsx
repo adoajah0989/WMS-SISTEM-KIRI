@@ -44,7 +44,7 @@ export const StockOpnameView: React.FC = () => {
     setLines([]);
   };
 
-  return <div className="space-y-4 sm:space-y-5">
+  return <div className="app-page space-y-4 sm:space-y-5">
     <header><h1 className="text-xl font-bold text-[#292929] sm:text-2xl">Stock Opname</h1><p className="mt-1 text-xs text-[#77766f]">Hitung fisik, lihat selisih, lalu sesuaikan stok dalam satu proses.</p></header>
     <section className="rounded-2xl border border-[#e2e0da] bg-white p-4 shadow-sm">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

@@ -68,7 +68,7 @@ export const AdminDashboard:React.FC = () => {
   const visibleLocations=warehouses.filter(x=>!query||`${x.code} ${x.name} ${x.city} ${x.type}`.toLowerCase().includes(query));
   const downloadBackup=()=>{if(!appState)return;const blob=new Blob([JSON.stringify({exportDate:new Date().toISOString(),...appState.payload},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`kiri-wms-admin-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);};
 
-  return <div className="min-h-screen bg-[#f3f2ef] text-[#242424] md:flex">
+  return <div className="admin-app-page min-h-screen bg-[#f3f2ef] text-[#242424] md:flex">
     <aside className="hidden w-[248px] shrink-0 border-r border-[#e7e5e0] bg-[#fbfbf9] p-3 md:flex md:min-h-screen md:flex-col">
       <div className="flex items-center gap-3 px-2 py-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#252525] text-[#82dd70]"><ShieldCheck size={20}/></span><div><p className="text-sm font-extrabold">Kiri Supply</p><p className="text-[10px] text-[#888781]">Administration</p></div></div>
       <nav className="mt-6 space-y-1">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>setSection(id)} className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[13px] ${section===id?'bg-[#82dd70] font-bold text-[#183316]':'font-medium text-[#676762] hover:bg-[#f0efeb]'}`}><Icon size={18}/>{label}</button>)}</nav>

@@ -29,7 +29,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onOpenCreatePR, on
   const recentGRNs = goodsReceipts.slice(0, 4);
   const stockHealth = items.length ? Math.max(0, Math.round(((items.length - lowStockItems.length) / items.length) * 100)) : 100;
 
-  return <div className="space-y-4 sm:space-y-5">
+  return <div className="app-page space-y-4 sm:space-y-5">
     <section className="flex flex-col gap-3 rounded-2xl border border-[#e5e3dd] bg-white p-4 shadow-[0_8px_24px_rgba(35,35,30,.05)] sm:flex-row sm:items-center sm:justify-between sm:p-5">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-[#8b8a84]">Operasional hari ini</p>
