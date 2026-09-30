@@ -34,6 +34,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { generateQRCodeDataUrl } from '../../utils/qrGenerator';
+import { useAuth } from '../auth/AuthContext';
 
 /* =========================================================================
    1. PURCHASE ORDER (PO) PRINT MODAL
@@ -186,7 +187,7 @@ export const POPrintModal: React.FC<POPrintModalProps> = ({ po, onClose }) => {
               </p>
               <div className="mt-2.5 pt-2 border-t border-slate-200 text-slate-600 space-y-0.5 text-[11px]">
                 <p><span className="font-semibold text-slate-700">Syarat Pembayaran (TOP):</span> {getPaymentTermLabel(po.paymentTerm)}</p>
-                <p><span className="font-semibold text-slate-700">Penerima Gudang:</span> Petugas Inbound Warehouse (Supardi)</p>
+                <p><span className="font-semibold text-slate-700">Penerima Gudang:</span> Petugas Inbound Warehouse</p>
                 <p><span className="font-semibold text-slate-700">Status PO:</span> <span className="font-bold text-slate-900 uppercase">{po.status.replace('_', ' ')}</span></p>
               </div>
             </div>
@@ -321,6 +322,7 @@ interface GRNPrintModalProps {
 
 export const GRNPrintModal: React.FC<GRNPrintModalProps> = ({ grn, onClose }) => {
   const [authQR, setAuthQR] = useState<string>('');
+  const [warehouseHeadName, setWarehouseHeadName] = useState<string>('');
 
   useEffect(() => {
     let active = true;
@@ -367,6 +369,19 @@ export const GRNPrintModal: React.FC<GRNPrintModalProps> = ({ grn, onClose }) =>
               <X className="w-5 h-5" />
             </button>
           </div>
+        </div>
+
+        <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 no-print shrink-0">
+          <label className="block max-w-sm text-xs font-semibold text-slate-700">
+            Nama Kepala Gudang
+            <input
+              type="text"
+              value={warehouseHeadName}
+              onChange={(event) => setWarehouseHeadName(event.target.value)}
+              placeholder="Masukkan nama penanggung jawab"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            />
+          </label>
         </div>
 
         {/* Document Printable Area */}
@@ -513,7 +528,9 @@ export const GRNPrintModal: React.FC<GRNPrintModalProps> = ({ grn, onClose }) =>
               </div>
               <div>
                 <p className="text-slate-500 mb-14 font-medium">Kepala Gudang,</p>
-                <div className="border-b border-slate-400 pb-1 font-bold text-slate-900">Rahmat Hidayat</div>
+                <div className="border-b border-slate-400 pb-1 font-bold text-slate-900">
+                  {warehouseHeadName.trim() || '( ................................... )'}
+                </div>
                 <p className="text-[10px] text-slate-500 mt-0.5">Warehouse Supervisor</p>
               </div>
             </div>
@@ -762,8 +779,12 @@ export const ComprehensiveReportModal: React.FC<ComprehensiveReportModalProps> =
   purchaseOrders,
   goodsReceipts,
 }) => {
+  const { profile } = useAuth();
   const [activeReport, setActiveReport] = useState<'stock_valuation' | 'stock_audit' | 'po_summary' | 'grn_summary'>(initialReportType);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [preparedBy, setPreparedBy] = useState<string>(profile.fullName || profile.email);
+  const [verifiedBy, setVerifiedBy] = useState<string>('');
+  const [approvedBy, setApprovedBy] = useState<string>('');
 
   useEffect(() => {
     setActiveReport(initialReportType);
@@ -887,6 +908,39 @@ export const ComprehensiveReportModal: React.FC<ComprehensiveReportModalProps> =
               </select>
             </div>
           )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-200 bg-white px-5 py-3 no-print shrink-0 sm:grid-cols-3">
+          <label className="text-xs font-semibold text-slate-700">
+            Disiapkan oleh
+            <input
+              type="text"
+              value={preparedBy}
+              onChange={(event) => setPreparedBy(event.target.value)}
+              placeholder="Nama pembuat laporan"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+          </label>
+          <label className="text-xs font-semibold text-slate-700">
+            Diverifikasi oleh
+            <input
+              type="text"
+              value={verifiedBy}
+              onChange={(event) => setVerifiedBy(event.target.value)}
+              placeholder="Nama kepala gudang"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+          </label>
+          <label className="text-xs font-semibold text-slate-700">
+            Disetujui oleh
+            <input
+              type="text"
+              value={approvedBy}
+              onChange={(event) => setApprovedBy(event.target.value)}
+              placeholder="Nama manajer atau direktur"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+          </label>
         </div>
 
         {/* Document Printable Area */}
@@ -1161,19 +1215,25 @@ export const ComprehensiveReportModal: React.FC<ComprehensiveReportModalProps> =
             <div className="grid grid-cols-3 gap-6 text-center text-xs">
               <div>
                 <p className="text-slate-500 mb-14 font-medium">Disiapkan Oleh (Staff),</p>
-                <div className="border-b border-slate-400 pb-1 font-bold text-slate-900">Staff Supply Chain & Inventory</div>
+                <div className="border-b border-slate-400 pb-1 font-bold text-slate-900">
+                  {preparedBy.trim() || '( ................................... )'}
+                </div>
                 <p className="text-[10px] text-slate-500 mt-0.5">Inventory Controller</p>
               </div>
 
               <div>
                 <p className="text-slate-500 mb-14 font-medium">Diverifikasi (Kepala Gudang),</p>
-                <div className="border-b border-slate-400 pb-1 font-bold text-slate-900">Rahmat Hidayat</div>
+                <div className="border-b border-slate-400 pb-1 font-bold text-slate-900">
+                  {verifiedBy.trim() || '( ................................... )'}
+                </div>
                 <p className="text-[10px] text-slate-500 mt-0.5">Warehouse Supervisor</p>
               </div>
 
               <div>
                 <p className="text-slate-500 mb-14 font-medium">Disetujui Oleh (Manajer Keuangan/Direktur),</p>
-                <div className="border-b border-slate-400 pb-1 font-bold text-slate-900">Bambang Sugiarto, S.E., M.M.</div>
+                <div className="border-b border-slate-400 pb-1 font-bold text-slate-900">
+                  {approvedBy.trim() || '( ................................... )'}
+                </div>
                 <p className="text-[10px] text-slate-500 mt-0.5">Finance & Operations Director</p>
               </div>
             </div>
