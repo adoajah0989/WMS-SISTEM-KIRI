@@ -73,7 +73,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @layer components {
   .app-page {
     color: var(--kiri-text);
-    animation: kiri-fade-up 220ms cubic-bezier(.2,.8,.2,1) both;
   }
 
   .app-page > header {
