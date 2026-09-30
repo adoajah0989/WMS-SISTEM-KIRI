@@ -73,7 +73,7 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] font-sans antialiased text-white">
+    <div className="min-h-screen bg-[#f3f2ef] font-sans antialiased text-[#242424]">
       <Sidebar onOpenScanQR={canScan ? () => {
         setSelectedItemForQRScan(null);
         setIsQRScanOpen(true);
@@ -196,7 +196,7 @@ const MainContent: React.FC = () => {
         preselectedItem={selectedItemForQRLabel}
       />
 
-      <footer className="no-print mt-auto hidden border-t border-[#2C2C2E] bg-[#121212] px-7 py-4 text-[11px] text-[#98989D] md:flex md:items-center md:justify-between">
+      <footer className="no-print mt-auto hidden border-t border-[#e7e5e0] px-7 py-4 text-[11px] text-[#888781] md:flex md:items-center md:justify-between">
         <span>Kiri Supply · Pengadaan & inventaris terintegrasi</span>
         <span>PR · PO · Penerimaan · Warehouse</span>
       </footer>
