@@ -668,7 +668,7 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSubmitPO} className="grid flex-1 grid-cols-1 content-start gap-3 overflow-y-auto bg-[#f7f8fa] p-3 pb-28 sm:p-5 sm:pb-28 lg:grid-cols-12 lg:grid-rows-[auto_auto_auto_1fr_auto]">
+            <form id="create-po-form" onSubmit={handleSubmitPO} className="grid min-h-0 flex-1 grid-cols-1 content-start gap-3 overflow-y-auto bg-[#f7f8fa] p-3 sm:p-5 lg:grid-cols-12 lg:grid-rows-[auto_auto_auto_1fr_auto]">
               <section className="rounded-2xl border border-[#dfddd7] bg-white p-3 sm:p-4 lg:col-span-4 lg:col-start-1 lg:row-start-1">
                 <div className="flex items-start justify-between gap-3">
                   <div><p className="text-xs font-bold text-[#333]">Sumber purchase order</p><p className="mt-0.5 text-[10px] text-[#85847e]">Gunakan PR agar barang dan qty terisi otomatis.</p></div>
@@ -1059,27 +1059,29 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({
                 )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="sticky bottom-0 z-20 -mx-3 flex items-center justify-end gap-2.5 border-t border-[#e3e1da] bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(35,35,30,.08)] backdrop-blur-lg sm:-mx-5 sm:px-6 lg:col-span-12">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCreateModalOpen(false);
-                    setPrefilledPR(null);
-                  }}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex min-h-11 items-center gap-1.5 rounded-xl bg-[#079b68] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#07865b] active:bg-[#066f4d] sm:text-sm"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  <span>Terbitkan Purchase Order</span>
-                </button>
-              </div>
             </form>
+
+            {/* Modal Footer: always visible without covering the item list */}
+            <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-[#e3e1da] bg-white px-4 py-3 shadow-[0_-8px_20px_rgba(35,35,30,.06)] sm:px-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCreateModalOpen(false);
+                  setPrefilledPR(null);
+                }}
+                className="min-h-11 rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                form="create-po-form"
+                className="flex min-h-11 items-center gap-1.5 rounded-xl bg-[#079b68] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#07865b] active:bg-[#066f4d] sm:text-sm"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                <span>Terbitkan Purchase Order</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
