@@ -36,7 +36,7 @@ export const StoreTransferView: React.FC = () => {
     if (result) { setRows([]); setNotes(''); }
   };
 
-  return <div className="space-y-4 sm:space-y-5">
+  return <div className="app-page space-y-4 sm:space-y-5">
     <header><h1 className="text-xl font-bold text-[#292929] sm:text-2xl">Transfer Gudang & Store</h1><p className="mt-1 text-xs text-[#77766f]">Kirim dari warehouse aktif; stok tujuan bertambah setelah penerimaan dikonfirmasi.</p></header>
     <section className="rounded-2xl border border-[#e2e0da] bg-white p-4 shadow-sm">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"><div className="flex h-11 min-w-0 items-center rounded-xl border border-[#d8d6cf] bg-[#f7f6f3] px-3 text-xs font-bold text-[#397c31]">{activeWarehouse.name}</div><ArrowRight className="h-4 w-4 text-[#85847e]"/><select value={destinationId} onChange={(event)=>setDestinationId(event.target.value)} className="h-11 min-w-0 rounded-xl border border-[#d8d6cf] bg-white px-2 text-xs font-semibold"><option value="">Pilih tujuan...</option>{destinationOptions.map((item)=><option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
