@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Kiri Supply",
+  "short_name": "Kiri Supply",
+  "description": "Pengadaan dan inventaris gudang Kiri",
+  "lang": "id",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f2ef",
+  "theme_color": "#252525",
+  "icons": [
+    { "src": "/icons/kiri-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/kiri-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/kiri-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

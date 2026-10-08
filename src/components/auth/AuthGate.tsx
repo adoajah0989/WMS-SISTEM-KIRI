@@ -1,4 +1,4 @@
-import React, { FormEvent, ReactNode, useEffect, useState } from 'react';
+import React, { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 import { restoreCloudSnapshot } from '../../services/cloudPersistence';
@@ -46,9 +46,11 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   const [otp, setOtp] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const preparedUser = useRef<string | null>(null);
 
   const prepareSession = async (nextSession: Session | null) => {
     if (!nextSession || !supabase) {
+      preparedUser.current = null;
       setSession(null);
       setProfile(null);
       setReady(true);
@@ -75,7 +77,9 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       throw new Error('Email berhasil diverifikasi. Akun menunggu aktivasi dari Master.');
     }
 
-    if (loadCloudSnapshot) await restoreCloudSnapshot();
+    // SIGNED_IN also fires on tab focus. Refresh permissions, but let CloudSync refresh data.
+    if (loadCloudSnapshot && preparedUser.current !== nextSession.user.id) await restoreCloudSnapshot();
+    preparedUser.current = nextSession.user.id;
     setProfile({
       id: nextSession.user.id,
       email: nextSession.user.email || '',
@@ -104,6 +108,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (event === 'SIGNED_OUT' || !nextSession) {
+        preparedUser.current = null;
         setSession(null);
         setProfile(null);
         setReady(true);

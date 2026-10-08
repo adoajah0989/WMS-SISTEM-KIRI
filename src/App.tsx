@@ -14,6 +14,7 @@ import { RackQRLabelModal } from './components/rack/RackQRLabelModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AuthGate } from './components/auth/AuthGate';
 import { CloudSync } from './components/common/CloudSync';
+import { InstallApp } from './components/common/InstallApp';
 import { PurchaseRequisition, PurchaseOrder, WarehouseItem } from './types';
 import { useAuth } from './components/auth/AuthContext';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -209,6 +210,7 @@ export default function App() {
   const isAdmin = /^\/admin\/?$/.test(window.location.pathname);
   return (
     <ErrorBoundary fallbackTitle="Terjadi Kendala Pada Aplikasi Kiri Purchasing">
+      <InstallApp />
       {isAdmin ? (
         <AuthGate requiredRole="master" allowRegistration={false} loadCloudSnapshot={false}>
           <AdminDashboard />

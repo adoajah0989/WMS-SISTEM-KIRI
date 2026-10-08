@@ -14,6 +14,13 @@ export const STORAGE_KEYS = {
 } as const;
 
 const SNAPSHOT_VERSION_KEY = 'kiri_app_state_version';
+// Each tab must acknowledge only the snapshot that it actually loaded.
+let snapshotVersion = 0;
+export const getSnapshotVersion = () => snapshotVersion;
+export const setSnapshotVersion = (version: number) => {
+  snapshotVersion = version;
+  localStorage.setItem(SNAPSHOT_VERSION_KEY, String(version));
+};
 
 export type CloudSnapshot = Record<(typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS], unknown[]>;
 
@@ -46,7 +53,7 @@ export const restoreCloudSnapshot = async () => {
   if (error) throw error;
   if (data?.payload) {
     writeLocalSnapshot(data.payload as Partial<CloudSnapshot>);
-    localStorage.setItem(SNAPSHOT_VERSION_KEY, String(data.version ?? 0));
+    setSnapshotVersion(Number(data.version ?? 0));
   }
 };
 
@@ -65,7 +72,7 @@ export const fetchCloudSnapshot = async () => {
 export const saveCloudSnapshot = async (snapshot: CloudSnapshot) => {
   if (!supabase) return;
 
-  const expectedVersion = Number(localStorage.getItem(SNAPSHOT_VERSION_KEY) || '0');
+  const expectedVersion = getSnapshotVersion();
   const { data, error } = await supabase.rpc('save_app_state', {
     p_expected_version: expectedVersion,
     p_payload: snapshot,
@@ -78,5 +85,5 @@ export const saveCloudSnapshot = async (snapshot: CloudSnapshot) => {
     throw new Error('SYNC_VERSION_CONFLICT');
   }
 
-  localStorage.setItem(SNAPSHOT_VERSION_KEY, String(saved.new_version));
+  setSnapshotVersion(Number(saved.new_version));
 };
