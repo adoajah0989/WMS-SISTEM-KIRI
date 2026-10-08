@@ -173,6 +173,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 #kiri-print-root { display: none; }
 
+/* Match the usable width of an 80 mm roll in both preview and print. */
+.thermal-labels > .grid {
+  width: 76mm;
+  max-width: 100%;
+  display: block;
+}
+
+.thermal-labels .sticker-card {
+  margin: 0 0 3mm;
+  padding: 2mm;
+  overflow: visible;
+}
+
+.thermal-labels .line-clamp-2,
+.thermal-labels .truncate {
+  display: block;
+  -webkit-line-clamp: unset;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
 @media print {
   body:has(> #kiri-print-root) > :not(#kiri-print-root) { display: none !important; }
   #kiri-print-root { display: block !important; visibility: visible !important; }
@@ -279,6 +301,29 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   @page {
     size: A4 portrait;
     margin: 8mm 8mm 8mm 8mm;
+  }
+
+  /* Use the printer's roll length instead of forcing an A4 sheet. */
+  @page kiri-thermal {
+    size: auto;
+    margin: 2mm;
+  }
+
+  #kiri-print-root > .thermal-labels {
+    page: kiri-thermal;
+    width: 76mm !important;
+    max-width: 76mm !important;
+  }
+
+  .thermal-labels .sticker-card:last-child {
+    margin-bottom: 0;
+  }
+
+  .thermal-labels .sticker-card,
+  .thermal-labels .sticker-card * {
+    color: #000 !important;
+    border-color: #000 !important;
+    background: #fff !important;
   }
 }
 

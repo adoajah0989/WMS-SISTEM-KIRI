@@ -295,7 +295,7 @@ export const RackQRLabelModal: React.FC<RackQRLabelModalProps> = ({
         </div>
 
         {/* Printable Preview Area */}
-        <div className="printable-area flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100 print:bg-white print:p-2 print:overflow-visible">
+        <div className={`printable-area ${labelSize === 'thermal' ? 'thermal-labels' : ''} flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100 print:bg-white print:p-2 print:overflow-visible`}>
           {itemsToPrint.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-xl border border-slate-200 p-6 no-print">
               <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
