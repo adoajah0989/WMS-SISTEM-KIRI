@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import {
   WarehouseItem,
   Supplier,
@@ -25,7 +25,7 @@ import {
 } from '../data/initialData';
 import { recordActivity } from '../services/activityLog';
 import { useAuth } from '../components/auth/AuthContext';
-import { STORAGE_KEYS as CLOUD_STORAGE_KEYS, type CloudSnapshot, writeLocalSnapshot } from '../services/cloudPersistence';
+import { STORAGE_KEYS as CLOUD_STORAGE_KEYS, type CloudSnapshot, setSnapshotVersion, writeLocalSnapshot } from '../services/cloudPersistence';
 import {
   calculateWeightedAverageCost,
   getAverageUnitCost,
@@ -112,6 +112,7 @@ interface PurchasingContextType {
   importFullBackup: (backupData: any) => boolean;
   exportDatabaseJSON: () => void;
   applyCloudSnapshot: (snapshot: Partial<CloudSnapshot>, version: number) => void;
+  cloudSnapshot: CloudSnapshot;
 }
 
 const STORAGE_KEYS = {
@@ -214,17 +215,30 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     const saved = localStorage.getItem(STORAGE_KEYS.TRANSFERS);
     return saved ? JSON.parse(saved) : [];
   });
-  const [warehouses] = useState<WarehouseConfig[]>(() => {
+  const [warehouses, setWarehouses] = useState<WarehouseConfig[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.WAREHOUSES);
     return saved ? JSON.parse(saved) : DEFAULT_WAREHOUSES;
   });
-  const [inventoryCategories] = useState<InventoryCategory[]>(() => {
+  const [inventoryCategories, setInventoryCategories] = useState<InventoryCategory[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
     return saved ? JSON.parse(saved) : [];
   });
+  // Sync all warehouses, independently of the filtered arrays used by the UI.
+  const cloudSnapshot = useMemo<CloudSnapshot>(() => ({
+    [CLOUD_STORAGE_KEYS.ITEMS]: items,
+    [CLOUD_STORAGE_KEYS.SUPPLIERS]: suppliers,
+    [CLOUD_STORAGE_KEYS.PRS]: requisitions,
+    [CLOUD_STORAGE_KEYS.POS]: purchaseOrders,
+    [CLOUD_STORAGE_KEYS.GRNS]: goodsReceipts,
+    [CLOUD_STORAGE_KEYS.MOVEMENTS]: stockMovements,
+    [CLOUD_STORAGE_KEYS.OPNAMES]: stockOpnames,
+    [CLOUD_STORAGE_KEYS.TRANSFERS]: storeTransfers,
+    [CLOUD_STORAGE_KEYS.WAREHOUSES]: warehouses,
+    [CLOUD_STORAGE_KEYS.CATEGORIES]: inventoryCategories,
+  }), [items, suppliers, requisitions, purchaseOrders, goodsReceipts, stockMovements, stockOpnames, storeTransfers, warehouses, inventoryCategories]);
   const applyCloudSnapshot = useCallback((snapshot: Partial<CloudSnapshot>, version: number) => {
     writeLocalSnapshot(snapshot);
-    localStorage.setItem('kiri_app_state_version', String(version));
+    setSnapshotVersion(version);
 
     if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.ITEMS])) setItems(snapshot[CLOUD_STORAGE_KEYS.ITEMS] as WarehouseItem[]);
     if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.SUPPLIERS])) setSuppliers(snapshot[CLOUD_STORAGE_KEYS.SUPPLIERS] as Supplier[]);
@@ -234,6 +248,8 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
     if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.MOVEMENTS])) setStockMovements(snapshot[CLOUD_STORAGE_KEYS.MOVEMENTS] as StockMovement[]);
     if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.OPNAMES])) setStockOpnames(snapshot[CLOUD_STORAGE_KEYS.OPNAMES] as StockOpname[]);
     if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.TRANSFERS])) setStoreTransfers(snapshot[CLOUD_STORAGE_KEYS.TRANSFERS] as StoreTransfer[]);
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.WAREHOUSES])) setWarehouses(snapshot[CLOUD_STORAGE_KEYS.WAREHOUSES] as WarehouseConfig[]);
+    if (Array.isArray(snapshot[CLOUD_STORAGE_KEYS.CATEGORIES])) setInventoryCategories(snapshot[CLOUD_STORAGE_KEYS.CATEGORIES] as InventoryCategory[]);
   }, []);
   const accessibleWarehouses = warehouses.filter((warehouse) => warehouse.type === 'warehouse' && warehouse.isActive && allowedWarehouseIds.includes(warehouse.id));
   const activeWarehouse = accessibleWarehouses.find((warehouse) => warehouse.id === activeWarehouseId) || accessibleWarehouses[0] || warehouses.find((warehouse) => warehouse.id === 'wh-aceh') || DEFAULT_WAREHOUSES[1];
@@ -1118,6 +1134,7 @@ export const PurchasingProvider: React.FC<{ children: ReactNode }> = ({ children
         importFullBackup,
         exportDatabaseJSON,
         applyCloudSnapshot,
+        cloudSnapshot,
       }}
     >
       {children}
